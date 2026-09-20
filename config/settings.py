@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "assessments",
     "learning",
     "dashboard",
+    "core",
 ]
 
 MIDDLEWARE = [
