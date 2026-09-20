@@ -8,8 +8,20 @@ mínimo é criado aqui, na Etapa 2 (Configuração/Banco), e não na Etapa 3
 como base para os relacionamentos de StudentProfile/TeacherProfile e para
 o restante do domínio (Subject, Skill, Assessment, etc.).
 """
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
 from django.db import models
+
+
+class UserManager(DjangoUserManager):
+    """`createsuperuser` não sabe nada sobre o campo `role` customizado —
+    ele só define is_staff/is_superuser. Sem esta sobrescrita, todo
+    superusuário nasce com role=STUDENT (o default do campo), e some nos
+    dashboards como "aluno" — foi exatamente o que aconteceu com o
+    primeiro superusuário criado neste projeto."""
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("role", self.model.Role.ADMIN)
+        return super().create_superuser(username, email, password, **extra_fields)
 
 
 class User(AbstractUser):
@@ -26,6 +38,8 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.STUDENT)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = UserManager()
 
     def __str__(self) -> str:
         return self.get_full_name() or self.username

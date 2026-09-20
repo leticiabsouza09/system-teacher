@@ -10,7 +10,10 @@ from rest_framework.response import Response
 
 from core.permissions import IsTeacher, IsTeacherOrReadOnlyOwner
 
-from .models import ActivityAttempt, Diagnostic, ProgressRecord, StudyActivity, StudyPlan, TeacherFeedback
+from .models import (
+    ActivityAttempt, Diagnostic, ProgressRecord, StudentSkill, StudyActivity, StudyPlan,
+    TeacherFeedback,
+)
 from .serializers import (
     ActivityAttemptCreateSerializer, ActivityAttemptSerializer, DiagnosticApproveSerializer,
     DiagnosticSerializer, ProgressRecordSerializer, StudyActivitySerializer, StudyPlanSerializer,
@@ -80,7 +83,34 @@ class DiagnosticViewSet(viewsets.ReadOnlyModelViewSet):
         diagnostico.validated_by = request.user
         diagnostico.validated_at = timezone.now()
         diagnostico.save()
+
+        if diagnostico.status in (Diagnostic.Status.APPROVED, Diagnostic.Status.MODIFIED):
+            self._sincronizar_student_skill(diagnostico)
+
         return Response(DiagnosticSerializer(diagnostico).data)
+
+    def _sincronizar_student_skill(self, diagnostico: Diagnostic) -> None:
+        """Um diagnóstico aprovado (ou aprovado com edição) é a fonte de
+        verdade mais recente sobre o domínio do aluno naquela habilidade —
+        por isso sincroniza StudentSkill aqui. Sem isso, StudentSkill nunca
+        era escrito em lugar nenhum do sistema, e os dashboards/métricas
+        (skills_mastered, percentual_objetivos_dominados) ficavam sempre
+        vazios, mesmo com diagnósticos e planos aprovados de verdade."""
+        estado, criado = StudentSkill.objects.get_or_create(
+            student=diagnostico.student, skill=diagnostico.skill,
+            defaults={"mastery_level": 0, "confidence": 0.5})
+        antes = 0 if criado else estado.mastery_level
+
+        estado.mastery_level = diagnostico.mastery_level
+        estado.confidence = 0.6
+        estado.last_evaluated_at = timezone.now()
+        estado.save()
+
+        if antes != estado.mastery_level:
+            ProgressRecord.objects.create(
+                student=diagnostico.student, skill=diagnostico.skill,
+                mastery_before=antes, mastery_after=estado.mastery_level,
+                source=ProgressRecord.Source.ASSESSMENT)
 
 
 class StudyPlanViewSet(viewsets.ReadOnlyModelViewSet):

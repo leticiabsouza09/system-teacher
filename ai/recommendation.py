@@ -16,8 +16,9 @@ daquela atividade), não de uma resposta isolada.
 """
 from django.db import models
 from django.db.models import Max
+from django.utils import timezone
 
-from learning.models import ActivityAttempt, Diagnostic, StudyActivity
+from learning.models import ActivityAttempt, Diagnostic, ProgressRecord, StudentSkill, StudyActivity
 from subjects.models import Skill
 from users.models import User
 
@@ -59,15 +60,46 @@ class AdaptationService:
     def score_attempt(self, attempt: ActivityAttempt) -> ActivityAttempt:
         """Corrige a tentativa. Sem gabarito (expected_answer vazio), a
         atividade precisa de correção manual do professor — não inventamos
-        uma nota; deixamos None de propósito (nunca 0 disfarçado de nota real)."""
+        uma nota; deixamos como veio de propósito (nunca 0 disfarçado de
+        nota real, e por isso também NUNCA atualiza StudentSkill a partir
+        de uma atividade sem gabarito — foi exatamente esse "0 fake" que
+        teria zerado o domínio real do aluno numa habilidade)."""
         gabarito = (attempt.activity.expected_answer or "").strip()
         if not gabarito:
-            return attempt  # score permanece como veio (0, definido na criação) — sem gabarito automático
+            return attempt  # score permanece como veio — sem gabarito, sem nota, sem tocar em StudentSkill
 
         acertou = attempt.answer.strip().lower() == gabarito.lower()
         attempt.score = 100 if acertou else 0
         attempt.save(update_fields=["score"])
+        self._atualizar_mastery_por_atividade(attempt)
         return attempt
+
+    def _atualizar_mastery_por_atividade(self, attempt: ActivityAttempt) -> None:
+        """Só chamada quando há gabarito real (ver score_attempt acima).
+        Ajuste pequeno e conservador — uma única atividade não deveria
+        virar todo o domínio do aluno numa habilidade (mesmo espírito do
+        MINIMUM_QUESTIONS_FOR_DIAGNOSIS no diagnóstico: um dado isolado
+        move pouco, não decide sozinho)."""
+        skill = attempt.activity.skill
+        estado, criado = StudentSkill.objects.get_or_create(
+            student=attempt.student, skill=skill, defaults={"mastery_level": 0, "confidence": 0.3})
+        antes = 0 if criado else estado.mastery_level
+
+        if attempt.score >= SCORE_HIGH:
+            ajuste = 5
+        elif attempt.score < SCORE_LOW:
+            ajuste = -5
+        else:
+            ajuste = 0
+
+        estado.mastery_level = max(0, min(100, antes + ajuste))
+        estado.last_evaluated_at = timezone.now()
+        estado.save()
+
+        if ajuste != 0:
+            ProgressRecord.objects.create(
+                student=attempt.student, skill=skill, mastery_before=antes,
+                mastery_after=estado.mastery_level, source=ProgressRecord.Source.ACTIVITY)
 
     def apply_adaptation(self, student: User, skill: Skill) -> dict:
         """Roda depois de cada tentativa: decide a ação (subir/manter/

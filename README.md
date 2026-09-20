@@ -1,6 +1,6 @@
-# System Teacher — Plataforma de Aprendizagem Personalizada com IA
+# Personalized Learning — Plataforma de Aprendizagem Personalizada com IA
 
-O **System Teacher** é um MVP de uma plataforma que identifica lacunas de aprendizagem de um aluno,
+MVP de uma plataforma que identifica lacunas de aprendizagem de um aluno,
 gera um plano de estudo personalizado, adapta a dificuldade conforme o
 desempenho, e mantém o professor como autoridade final em cada decisão
 importante — a IA é apoio à decisão, nunca quem decide sozinha.
@@ -161,7 +161,7 @@ suas `AssessmentQuestion` como inline, e `StudyPlan` suas `StudyActivity`.
 
 ## Testes
 
-76 testes automatizados (`python manage.py test`), cobrindo:
+84 testes automatizados (`python manage.py test`), cobrindo:
 
 - Models: criação, relacionamentos (grafo M2M de pré-requisitos), validações
   (`unique_together`).
@@ -182,6 +182,36 @@ suas `AssessmentQuestion` como inline, e `StudyPlan` suas `StudyActivity`.
 - Segurança: throttling de login testado com 11 requisições reais.
 - `TeacherFeedback`: criação exclusiva do professor, bloqueio de aluno,
   validação de rating (1-5) e de diagnóstico↔aluno cruzado.
+- **Sincronização de `StudentSkill`/`ProgressRecord`** (achado em teste
+  manual via Postman, não pelos testes automatizados — ver seção abaixo):
+  aprovar diagnóstico ou corrigir atividade com gabarito real atualiza o
+  domínio do aluno; atividade sem gabarito nunca zera o `mastery_level`
+  real; `createsuperuser` agora define `role=ADMIN` corretamente.
+
+## Bugs reais encontrados em teste manual (não pelos 76 testes automatizados)
+
+Rodar o sistema de ponta a ponta via Postman (não só os testes unitários)
+revelou 2 lacunas que a suíte automatizada não pegava, porque os testes
+criavam `StudentSkill` manualmente no `setUp` — nunca exercitavam o
+caminho real de escrita:
+
+1. **`StudentSkill`/`ProgressRecord` nunca eram escritos em lugar nenhum
+   do sistema.** Diagnóstico e plano eram gerados normalmente, mas o
+   "domínio atual do aluno" (o que os dashboards e métricas leem) ficava
+   sempre vazio. Corrigido: aprovar um diagnóstico agora sincroniza
+   `StudentSkill` (fonte de verdade mais recente); corrigir uma atividade
+   com gabarito real ajusta o `mastery_level` em ±5 e registra
+   `ProgressRecord`. Atividade **sem** gabarito nunca toca em
+   `StudentSkill` — evita que um "0 disfarçado" (não corrigido) zere o
+   domínio real do aluno.
+2. **`createsuperuser` criava o superusuário com `role=STUDENT`** (o
+   default do campo, já que o comando não sabe nada sobre esse campo
+   customizado). Um `admin` real aparecia como "aluno" nos dashboards.
+   Corrigido com uma sobrescrita de `UserManager.create_superuser()`.
+
+Isso é um lembrete útil pra qualquer projeto: testes automatizados que
+criam estado manualmente no `setUp` podem mascarar exatamente os pontos
+de integração que só o uso real do sistema revela.
 - Métricas (`ProgressAnalyzerService`): valores calculados batendo com
   dados reais, e cada métrica genuinamente não-computável retornando
   `not_implemented` com o motivo, nunca um número inventado.
