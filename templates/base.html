@@ -1,0 +1,167 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}System Teacher{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f4f5fb;
+    --surface-2: #eceefa;
+    --line: #e3e5f2;
+    --ink: #14151f;
+    --ink-soft: #64687a;
+    --primary: #e8562f;
+    --primary-dark: #c94422;
+    --primary-tint: #fdeae3;
+    --mint: #12a683;
+    --mint-tint: #e1f5ef;
+    --amber: #f5a623;
+    --amber-tint: #fdefd9;
+    --navy: #171b2e;
+    --navy-soft: #2a2f47;
+    --radius-sm: 10px;
+    --radius: 16px;
+    --radius-lg: 22px;
+    --shadow: 0 10px 30px -14px rgba(23, 27, 46, 0.18);
+    --display: "Space Grotesk", "Manrope", sans-serif;
+    --sans: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  p { margin: 0; }
+  a { color: inherit; }
+  button, input, select { font-family: inherit; font-size: inherit; }
+
+  :focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+
+  /* --- Nav --- */
+  .nav {
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 30;
+  }
+  .nav .wrap {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 72px;
+  }
+  .brand {
+    font-family: var(--display); font-size: 1.3rem; font-weight: 700;
+    color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 8px;
+  }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 9px; background: var(--primary);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 0.95rem; font-weight: 700; flex-shrink: 0;
+  }
+  .nav-actions { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 12px 24px; border-radius: 999px; border: 1.5px solid transparent;
+    font-weight: 700; font-size: 0.92rem; cursor: pointer; text-decoration: none;
+    transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+    font-family: var(--sans);
+  }
+  .btn:active { transform: translateY(1px) scale(0.99); }
+  .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 8px 18px -8px rgba(232, 86, 47, 0.55); }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-ghost:hover { border-color: var(--ink-soft); }
+  .btn-outline { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-outline:hover { background: var(--surface); }
+  .btn-block { width: 100%; }
+  .btn[disabled] { opacity: 0.6; cursor: default; }
+
+  /* --- Modal --- */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(20, 21, 31, 0.55);
+    align-items: center; justify-content: center; padding: 20px; z-index: 50;
+    backdrop-filter: blur(2px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: var(--radius-lg); width: 100%; max-width: 408px;
+    padding: 36px; position: relative; box-shadow: 0 30px 60px -20px rgba(23,27,46,0.35);
+  }
+  .modal-close {
+    position: absolute; top: 18px; right: 18px; background: var(--surface); border: none;
+    width: 32px; height: 32px; border-radius: 50%; font-size: 1.15rem; cursor: pointer;
+    color: var(--ink); line-height: 1;
+  }
+  .modal h2 { font-size: 1.5rem; margin-bottom: 6px; }
+  .modal p.sub { color: var(--ink-soft); font-size: 0.92rem; margin-bottom: 24px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; }
+  .field input, .field select {
+    width: 100%; padding: 12px 14px; border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm); background: var(--surface); color: var(--ink);
+  }
+  .field input:focus, .field select:focus { border-color: var(--primary); background: #fff; }
+  .form-msg { font-size: 0.85rem; margin-bottom: 14px; padding: 11px 14px; border-radius: var(--radius-sm); display: none; font-weight: 600; }
+  .form-msg.show { display: block; }
+  .form-msg.error { background: var(--primary-tint); color: var(--primary-dark); }
+  .form-msg.ok { background: var(--mint-tint); color: #0c6e58; }
+  .modal-switch { margin-top: 20px; font-size: 0.87rem; text-align: center; color: var(--ink-soft); }
+  .modal-switch button { background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; padding: 0; }
+
+  footer {
+    background: var(--navy); color: #a9adc4;
+    padding: 36px 0; font-size: 0.87rem;
+  }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  footer a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 20px; }
+  }
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="{% url 'home' %}" class="brand"><span class="brand-mark">S</span>System Teacher</a>
+    <div class="nav-actions">
+      {% block nav_actions %}
+      <button class="btn btn-ghost" data-open-modal="login">Entrar</button>
+      <button class="btn btn-primary" data-open-modal="register">Cadastre-se</button>
+      {% endblock %}
+    </div>
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<footer>
+  <div class="wrap">
+    <span>System Teacher — plataforma de aprendizagem personalizada com IA.</span>
+    <a href="https://github.com/leticiabsouza09/system-teacher" target="_blank" rel="noopener">Código aberto no GitHub</a>
+  </div>
+</footer>
+
+<script src="{% static 'js/auth.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

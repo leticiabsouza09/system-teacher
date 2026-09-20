@@ -15,9 +15,16 @@ importante — a IA é apoio à decisão, nunca quem decide sozinha.
   de IA (`ai/diagnostic.py`, `ai/activity_generator.py`) funciona **sem**
   nenhuma chave configurada — a IA entra só como enriquecimento opcional de
   texto, nunca dos números/evidências.
-- **Frontend**: nenhum ainda — o projeto é API-first (Django REST
-  Framework); Django Templates ou uma SPA React consumiriam a mesma API
-  sem mudança nenhuma no backend.
+- **Frontend**: landing page + dashboards funcionais, servidos como Django
+  Templates em `templates/`. O HTML não recebe dado renderizado pelo
+  servidor — cada página chama a própria API REST via `fetch()`
+  (`static/js/auth.js`), exatamente os mesmos endpoints testados no
+  Postman. Login/cadastro são modais na landing page; token fica em
+  `localStorage`. O painel do professor lista diagnósticos pendentes e
+  planos aguardando aprovação com ações reais (**Aprovar** / editar o
+  `mastery_level` antes de aprovar / **Rejeitar**) — a mesma ação que
+  fizemos via Postman, agora clicável. O painel do aluno mostra o plano
+  atual com a lista de atividades e status de conclusão.
 
 ## Como rodar localmente
 

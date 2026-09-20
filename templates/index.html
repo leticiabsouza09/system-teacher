@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}System Teacher — Aprendizagem personalizada com IA supervisionada{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow-free">Diagnóstico automático · aprovação humana</span>
+      <h1>A IA aponta a lacuna.<br>O professor decide o que fazer com ela.</h1>
+      <p class="hero-sub">
+        O System Teacher lê o desempenho de cada aluno, identifica onde ele está travando
+        e monta um plano de estudo sob medida — mas nada chega ao aluno sem passar pela
+        aprovação de um professor de verdade.
+      </p>
+      <div class="hero-cta">
+        <button class="btn btn-primary" data-open-modal="register">Criar minha conta</button>
+        <button class="btn btn-ghost" data-open-modal="login">Já tenho conta</button>
+      </div>
+    </div>
+
+    <div class="hero-demo" aria-hidden="true">
+      <div class="demo-card">
+        <div class="demo-card-head">
+          <span class="demo-label">Diagnóstico</span>
+          <span class="demo-status">
+            <span class="demo-status-text demo-status-pending">Aguardando aprovação</span>
+            <span class="demo-status-text demo-status-approved">Aprovado</span>
+          </span>
+        </div>
+        <p class="demo-skill">Sistemas de Equações</p>
+        <div class="demo-bar-track">
+          <div class="demo-bar-fill"></div>
+        </div>
+        <p class="demo-mastery"><strong>20%</strong> de domínio</p>
+        <p class="demo-evidence">"4 de 5 questões respondidas incorretamente"</p>
+        <div class="demo-stamp">
+          <svg viewBox="0 0 52 52" width="26" height="26">
+            <path d="M15 27l7 7 15-15" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <p class="demo-caption">Assim como testamos de verdade, via API — não é ilustração.</p>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="wrap">
+    <h2 class="how-title">Como um plano chega até o aluno</h2>
+    <div class="how-steps">
+      <div class="how-card">
+        <span class="how-num">1</span>
+        <h3>Diagnóstico</h3>
+        <p>O sistema calcula o domínio do aluno em cada habilidade a partir das respostas reais — nunca um número inventado.</p>
+      </div>
+      <div class="how-card">
+        <span class="how-num">2</span>
+        <h3>Aprovação do professor</h3>
+        <p>Todo diagnóstico nasce pendente. Só vira plano depois que um professor aprova, edita ou rejeita.</p>
+      </div>
+      <div class="how-card">
+        <span class="how-num">3</span>
+        <h3>Plano personalizado</h3>
+        <p>Atividades na sequência certa para a lacuna encontrada — de revisão a miniavaliação.</p>
+      </div>
+      <div class="how-card">
+        <span class="how-num">4</span>
+        <h3>Adaptação automática</h3>
+        <p>Foi bem? A dificuldade sobe. Errou? Reduz e reforça — sem esperar o professor mexer em nada.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  .hero { padding: 88px 0 96px; background: var(--surface); overflow: hidden; }
+  .hero-grid {
+    display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 64px; align-items: center;
+  }
+  .eyebrow-free {
+    display: inline-block; background: var(--primary-tint); color: var(--primary-dark);
+    font-size: 0.8rem; font-weight: 700; padding: 6px 14px; border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  .hero-copy h1 {
+    font-size: clamp(2.1rem, 4vw, 2.9rem); line-height: 1.14; color: var(--ink);
+    max-width: 16ch;
+  }
+  .hero-sub {
+    margin-top: 22px; color: var(--ink-soft); font-size: 1.06rem; max-width: 46ch; line-height: 1.65;
+  }
+  .hero-cta { margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .hero-demo { display: flex; flex-direction: column; align-items: center; }
+  .demo-card {
+    background: #fff; color: var(--ink); border-radius: var(--radius-lg);
+    padding: 28px; width: 100%; max-width: 330px; position: relative;
+    box-shadow: var(--shadow); border: 1px solid var(--line);
+  }
+  .demo-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .demo-label { font-size: 0.8rem; color: var(--ink-soft); font-weight: 700; }
+  .demo-status { position: relative; display: inline-block; height: 1.7em; min-width: 140px; }
+  .demo-status-text {
+    position: absolute; left: 0; top: 0; white-space: nowrap;
+    font-size: 0.74rem; font-weight: 700; padding: 4px 11px; border-radius: 999px;
+  }
+  .demo-status-pending { background: var(--amber-tint); color: #9a6b0c; }
+  .demo-status-approved { background: var(--mint-tint); color: #0c6e58; opacity: 0; }
+  .demo-skill { font-family: var(--display); font-weight: 600; font-size: 1.2rem; margin-bottom: 16px; }
+  .demo-bar-track { background: var(--surface-2); height: 9px; border-radius: 999px; overflow: hidden; }
+  .demo-bar-fill { background: var(--amber); height: 100%; width: 20%; border-radius: 999px; }
+  .demo-mastery { margin-top: 12px; font-size: 0.92rem; color: var(--ink-soft); }
+  .demo-evidence { margin-top: 10px; font-size: 0.82rem; color: #9a9dae; font-style: italic; }
+  .demo-caption { margin-top: 18px; color: var(--ink-soft); font-size: 0.8rem; text-align: center; max-width: 260px; }
+
+  .demo-stamp {
+    position: absolute; top: -12px; right: -12px; width: 42px; height: 42px;
+    border-radius: 50%; background: var(--mint); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 18px -6px rgba(18, 166, 131, 0.6);
+    opacity: 0; transform: scale(0.5);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .demo-status-pending { animation: fadeOut 0.4s 1.1s ease forwards; }
+    .demo-status-approved { animation: fadeIn 0.4s 1.1s ease forwards; }
+    .demo-bar-fill { animation: growBar 0.7s 1.1s ease forwards; }
+    .demo-stamp { animation: stampIn 0.5s 1.1s cubic-bezier(0.2, 1.4, 0.4, 1) forwards; }
+  }
+  @keyframes fadeOut { to { opacity: 0; } }
+  @keyframes fadeIn { to { opacity: 1; } }
+  @keyframes growBar { to { width: 100%; background: var(--mint); } }
+  @keyframes stampIn { to { opacity: 1; transform: scale(1); } }
+
+  .how { padding: 92px 0 104px; }
+  .how-title { font-size: 1.85rem; text-align: center; margin-bottom: 52px; }
+  .how-steps {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  }
+  .how-card {
+    background: var(--surface); border-radius: var(--radius); padding: 26px 22px;
+    transition: transform 0.15s ease;
+  }
+  .how-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: #fff;
+    font-family: var(--display); font-size: 0.95rem; font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .how-card h3 { font-size: 1.06rem; margin-bottom: 8px; }
+  .how-card p { font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; }
+
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-demo { margin-top: 12px; }
+    .how-steps { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 520px) {
+    .how-steps { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block nav_actions %}
+<button class="btn btn-ghost" data-open-modal="login">Entrar</button>
+<button class="btn btn-primary" data-open-modal="register">Cadastre-se</button>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Modal de Login -->
+<div class="modal-backdrop" id="modal-login">
+  <div class="modal">
+    <button class="modal-close" data-close-modal aria-label="Fechar">&times;</button>
+    <h2>Entrar</h2>
+    <p class="sub">Use o usuário e senha da sua conta.</p>
+    <div class="form-msg" id="login-msg"></div>
+    <form id="login-form">
+      <div class="field">
+        <label for="login-username">Usuário</label>
+        <input type="text" id="login-username" name="username" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="login-password">Senha</label>
+        <input type="password" id="login-password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    </form>
+    <div class="modal-switch">
+      Ainda não tem conta? <button type="button" data-switch-modal="register">Cadastre-se</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Cadastro -->
+<div class="modal-backdrop" id="modal-register">
+  <div class="modal">
+    <button class="modal-close" data-close-modal aria-label="Fechar">&times;</button>
+    <h2>Criar conta</h2>
+    <p class="sub">Alunos e professores se cadastram por aqui.</p>
+    <div class="form-msg" id="register-msg"></div>
+    <form id="register-form">
+      <div class="field">
+        <label for="reg-role">Eu sou</label>
+        <select id="reg-role" name="role" required>
+          <option value="student">Aluno</option>
+          <option value="teacher">Professor</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="reg-first-name">Nome</label>
+        <input type="text" id="reg-first-name" name="first_name" required autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="reg-username">Usuário</label>
+        <input type="text" id="reg-username" name="username" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="reg-email">E-mail</label>
+        <input type="email" id="reg-email" name="email" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="reg-password">Senha</label>
+        <input type="password" id="reg-password" name="password" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Criar conta</button>
+    </form>
+    <div class="modal-switch">
+      Já tem conta? <button type="button" data-switch-modal="login">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = `form-msg show ${type}`;
+  }
+
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    submitBtn.disabled = true;
+    try {
+      const resp = await fetch("/api/auth/login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("login-username").value,
+          password: document.getElementById("login-password").value,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        const msg = data.non_field_errors ? data.non_field_errors[0] : "Usuário ou senha inválidos.";
+        showMsg("login-msg", msg, "error");
+        return;
+      }
+      ST.setSession(data.token, data.user);
+      showMsg("login-msg", "Login feito! Redirecionando...", "ok");
+      setTimeout(() => ST.redirectToDashboard(data.user), 500);
+    } catch (err) {
+      showMsg("login-msg", "Não foi possível conectar ao servidor.", "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  document.getElementById("register-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    submitBtn.disabled = true;
+    try {
+      const resp = await fetch("/api/auth/register/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("reg-username").value,
+          email: document.getElementById("reg-email").value,
+          first_name: document.getElementById("reg-first-name").value,
+          password: document.getElementById("reg-password").value,
+          role: document.getElementById("reg-role").value,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        const primeiroErro = Object.values(data)[0];
+        const msg = Array.isArray(primeiroErro) ? primeiroErro[0] : "Não foi possível criar a conta.";
+        showMsg("register-msg", msg, "error");
+        return;
+      }
+      ST.setSession(data.token, data.user);
+      showMsg("register-msg", "Conta criada! Redirecionando...", "ok");
+      setTimeout(() => ST.redirectToDashboard(data.user), 500);
+    } catch (err) {
+      showMsg("register-msg", "Não foi possível conectar ao servidor.", "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+{% endblock %}
