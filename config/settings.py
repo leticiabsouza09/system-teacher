@@ -5,6 +5,7 @@ aqui: isso é exatamente o que a Seção 13 (Segurança e Privacidade) do
 escopo proíbe.
 """
 from pathlib import Path
+import sys
 
 import environ
 
@@ -143,6 +144,16 @@ CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 # — nenhuma outra parte do código acessa a chave de API diretamente.
 AI_PROVIDER = env("AI_PROVIDER", default="anthropic")
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+
+# manage.py test NUNCA deve chamar a API de verdade — nem por engano, nem
+# se o .env local tiver uma chave real configurada para desenvolvimento.
+# Sem isso, rodar os testes gastaria (ou tentaria gastar) chamadas de API
+# reais a cada execução, e ficaria dependente de internet/chave válida
+# pra passar. Esse foi exatamente o achado ao investigar por que a IA
+# sempre caía no fallback determinístico: a chave real estava inválida
+# (401), e o teste tentava usá-la mesmo assim.
+if "test" in sys.argv:
+    ANTHROPIC_API_KEY = ""
 
 # --- Logging ---------------------------------------------------------------
 # Sem dado pessoal de aluno em log (Seção 13): logamos IDs, nunca nome/email.

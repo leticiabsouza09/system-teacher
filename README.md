@@ -20,11 +20,19 @@ importante — a IA é apoio à decisão, nunca quem decide sozinha.
   servidor — cada página chama a própria API REST via `fetch()`
   (`static/js/auth.js`), exatamente os mesmos endpoints testados no
   Postman. Login/cadastro são modais na landing page; token fica em
-  `localStorage`. O painel do professor lista diagnósticos pendentes e
-  planos aguardando aprovação com ações reais (**Aprovar** / editar o
-  `mastery_level` antes de aprovar / **Rejeitar**) — a mesma ação que
-  fizemos via Postman, agora clicável. O painel do aluno mostra o plano
-  atual com a lista de atividades e status de conclusão.
+  `localStorage`. O painel do aluno tem botões que disparam a IA de
+  verdade (**Analisar meu desempenho** → `/api/diagnostics/generate/`,
+  **Gerar meu plano** → `/api/study-plans/generate/`), mostrando o estado
+  de "processando" enquanto a chamada roda. O painel do professor lista
+  diagnósticos pendentes e planos aguardando aprovação com ações reais
+  (**Aprovar** / editar o `mastery_level` antes de aprovar / **Rejeitar**),
+  e uma seção de **anotações sobre alunos** (`TeacherFeedback`) — o
+  professor escreve uma observação, escolhe uma nota de 1 a 5, e vê o
+  histórico do que já escreveu. Um botão **"Analisar anotações com IA"**
+  sintetiza o histórico e sugere próximos passos — sempre com um filtro
+  de segurança que descarta qualquer linguagem de diagnóstico clínico/
+  psicológico (fora do papel desta ferramenta) e cai de volta pra um
+  resumo determinístico se a IA tropeçar nisso ou falhar.
 
 ## Como rodar localmente
 
@@ -168,7 +176,7 @@ suas `AssessmentQuestion` como inline, e `StudyPlan` suas `StudyActivity`.
 
 ## Testes
 
-84 testes automatizados (`python manage.py test`), cobrindo:
+94 testes automatizados (`python manage.py test`), cobrindo:
 
 - Models: criação, relacionamentos (grafo M2M de pré-requisitos), validações
   (`unique_together`).
@@ -222,6 +230,10 @@ de integração que só o uso real do sistema revela.
 - Métricas (`ProgressAnalyzerService`): valores calculados batendo com
   dados reais, e cada métrica genuinamente não-computável retornando
   `not_implemented` com o motivo, nunca um número inventado.
+- `NotesAnalysisService`: evidência insuficiente com menos de 2 anotações,
+  isolamento entre professores (um professor nunca vê a análise baseada
+  em anotações de outro), e o filtro de segurança descartando qualquer
+  sugestão de IA com linguagem clínica/psicológica.
 
 ## Próximos passos sugeridos
 

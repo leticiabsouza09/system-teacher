@@ -9,12 +9,27 @@
 {% block content %}
 <section class="wrap page">
   <h1>Meu painel</h1>
-  <p class="lede">Esta tela ainda é um esqueleto — o dashboard completo do aluno é o próximo passo do projeto. Por enquanto, ela já busca seus dados reais na API, pra provar que login → token → dados protegidos está funcionando de ponta a ponta.</p>
+  <p class="lede">Analise seu desempenho, gere seu plano de estudo, e acompanhe o que já foi aprovado pelo professor.</p>
 
   <div id="loading" class="state">Carregando seus dados...</div>
   <div id="error" class="state state-error" style="display:none;"></div>
 
   <div id="data" style="display:none;">
+    <div class="ai-panel">
+      <div class="ai-block">
+        <h3>Diagnóstico com IA</h3>
+        <p>Analisa suas respostas em cada habilidade e identifica onde você está com mais dificuldade.</p>
+        <button id="btn-diagnose" class="btn btn-primary btn-sm">Analisar meu desempenho</button>
+        <div id="diagnostic-result" class="ai-result" style="display:none;"></div>
+      </div>
+      <div class="ai-block">
+        <h3>Plano de estudo</h3>
+        <p>Monta um plano de atividades a partir dos diagnósticos já aprovados pelo professor.</p>
+        <button id="btn-plan" class="btn btn-primary btn-sm">Gerar meu plano</button>
+        <div id="plan-result" class="ai-result" style="display:none;"></div>
+      </div>
+    </div>
+
     <div class="stat-row">
       <div class="stat"><span class="stat-value" id="stat-progress">—</span><span class="stat-label">Progresso médio</span></div>
       <div class="stat"><span class="stat-value" id="stat-activities">—</span><span class="stat-label">Atividades concluídas</span></div>
@@ -77,6 +92,29 @@
   .activity-title { font-weight: 600; font-size: 0.94rem; }
   .activity-sub { color: var(--ink-soft); font-size: 0.8rem; margin-top: 2px; }
   .activity-time { margin-left: auto; font-size: 0.8rem; color: var(--ink-soft); flex-shrink: 0; }
+
+  .ai-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 32px; }
+  .ai-block {
+    background: var(--surface); border-radius: var(--radius); padding: 22px;
+  }
+  .ai-block h3 { font-size: 1rem; margin-bottom: 6px; }
+  .ai-block p { color: var(--ink-soft); font-size: 0.86rem; line-height: 1.5; margin-bottom: 16px; }
+  .ai-result { margin-top: 14px; }
+  .ai-item {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 10px 14px; margin-bottom: 8px; font-size: 0.88rem;
+  }
+  .ai-item .badge {
+    margin-left: 8px; font-size: 0.72rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 999px; background: var(--amber-tint); color: #9a6b0c;
+  }
+  .ai-item-muted { color: var(--ink-soft); font-style: italic; }
+  .ai-item-error { color: var(--primary-dark); font-size: 0.88rem; font-weight: 600; }
+  .ai-item-ok { color: #0c6e58; font-size: 0.88rem; font-weight: 600; }
+
+  @media (max-width: 640px) {
+    .ai-panel { grid-template-columns: 1fr; }
+  }
 </style>
 {% endblock %}
 
@@ -86,6 +124,60 @@
   const user = ST.getUser();
   document.getElementById("who").textContent = user ? user.first_name || user.username : "";
   document.getElementById("logout-btn").addEventListener("click", () => ST.logout());
+
+  document.getElementById("btn-diagnose").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-diagnose");
+    const resultEl = document.getElementById("diagnostic-result");
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "A IA está analisando suas respostas...";
+    resultEl.style.display = "none";
+    try {
+      const resp = await ST.apiFetch("/api/diagnostics/generate/", { method: "POST" });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Não foi possível gerar o diagnóstico.");
+
+      let html = "";
+      data.diagnostics.forEach((d) => {
+        html += `<div class="ai-item"><strong>${d.skill_name}</strong> — ${d.mastery_level}% de domínio
+          <span class="badge">aguardando aprovação</span></div>`;
+      });
+      data.insufficient_evidence.forEach((i) => {
+        html += `<div class="ai-item ai-item-muted"><strong>${i.skill}</strong> — ${i.missing_info}</div>`;
+      });
+      if (!html) html = '<p class="ai-item-muted">Nenhuma habilidade com questões respondidas ainda.</p>';
+      resultEl.innerHTML = html;
+      resultEl.style.display = "block";
+    } catch (err) {
+      resultEl.innerHTML = `<p class="ai-item-error">${err.message}</p>`;
+      resultEl.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  });
+
+  document.getElementById("btn-plan").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-plan");
+    const resultEl = document.getElementById("plan-result");
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Montando seu plano...";
+    resultEl.style.display = "none";
+    try {
+      const resp = await ST.apiFetch("/api/study-plans/generate/", { method: "POST" });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Não foi possível gerar o plano.");
+      resultEl.innerHTML = `<p class="ai-item-ok">Plano criado com ${data.activities.length} atividade(s)! Atualize a página para ver.</p>`;
+      resultEl.style.display = "block";
+    } catch (err) {
+      resultEl.innerHTML = `<p class="ai-item-error">${err.message}</p>`;
+      resultEl.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  });
 
   ST.apiFetch("/api/dashboard/student/")
     .then(async (resp) => {

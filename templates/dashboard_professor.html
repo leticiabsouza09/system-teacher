@@ -32,9 +32,26 @@
 
     <h2>Alunos</h2>
     <table class="students-table">
-      <thead><tr><th>Nome</th><th>Progresso médio</th><th>Diagnósticos pendentes</th></tr></thead>
+      <thead><tr><th>Nome</th><th>Progresso médio</th><th>Diagnósticos pendentes</th><th></th></tr></thead>
       <tbody id="students-body"></tbody>
     </table>
+
+    <h2>Anotações sobre alunos</h2>
+    <p class="lede-sm">Registre uma observação sobre o desempenho ou comportamento de um aluno — fica visível só pra você.</p>
+    <div class="note-form">
+      <select id="note-student"></select>
+      <input type="number" id="note-rating" min="1" max="5" value="3" title="Nota de 1 a 5">
+      <textarea id="note-comment" rows="2" placeholder="Escreva a observação..."></textarea>
+      <button id="note-submit" class="btn btn-primary btn-sm">Salvar anotação</button>
+      <div class="action-msg" id="note-msg"></div>
+    </div>
+
+    <div class="ai-analysis-bar">
+      <button id="btn-analyze-notes" class="btn btn-outline btn-sm">Analisar anotações deste aluno com IA</button>
+      <div id="analysis-result" class="ai-result" style="display:none;"></div>
+    </div>
+
+    <div id="notes-list" class="review-list"></div>
   </div>
 </section>
 {% endblock %}
@@ -87,6 +104,41 @@
   .students-table th, .students-table td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
   .students-table th { background: var(--navy); color: #fff; font-weight: 700; font-size: 0.8rem; }
   .students-table tr:last-child td { border-bottom: none; }
+  .students-table .link-btn { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 0.85rem; cursor: pointer; padding: 0; }
+
+  .lede-sm { color: var(--ink-soft); font-size: 0.88rem; margin-top: -4px; margin-bottom: 16px; }
+  .note-form {
+    display: grid; grid-template-columns: 1fr 90px auto; gap: 10px; align-items: start;
+    background: var(--surface); border-radius: var(--radius); padding: 18px;
+  }
+  .note-form select, .note-form input, .note-form textarea {
+    padding: 10px 12px; border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+    background: #fff; font-family: inherit;
+  }
+  .note-form textarea { grid-column: 1 / span 2; resize: vertical; }
+  .note-form button { grid-row: 1; }
+  .note-form .action-msg { grid-column: 1 / -1; }
+  .note-item-meta { font-size: 0.78rem; color: var(--ink-soft); margin-top: 4px; }
+
+  @media (max-width: 640px) {
+    .note-form { grid-template-columns: 1fr 90px; }
+    .note-form textarea { grid-column: 1 / -1; }
+    .note-form button { grid-column: 1 / -1; }
+  }
+
+  .ai-analysis-bar { margin: 16px 0 24px; }
+  .ai-result { margin-top: 14px; background: var(--surface); border-radius: var(--radius); padding: 18px 20px; }
+  .ai-result .ai-summary { font-size: 0.92rem; margin-bottom: 12px; }
+  .ai-result .ai-actions { list-style: none; margin: 0; padding: 0; }
+  .ai-result .ai-actions li {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 10px 14px; margin-bottom: 8px; font-size: 0.86rem; line-height: 1.5;
+  }
+  .ai-result .ai-actions li strong { display: block; margin-bottom: 3px; }
+  .ai-disclaimer { font-size: 0.8rem; color: var(--ink-soft); font-style: italic; margin-top: 4px; }
+  .ai-source-tag { font-size: 0.72rem; color: var(--ink-soft); font-style: italic; margin-top: 8px; display: block; }
+  .ai-item-muted { color: var(--ink-soft); font-style: italic; font-size: 0.88rem; }
+  .ai-item-error { color: var(--primary-dark); font-size: 0.88rem; font-weight: 600; }
 </style>
 {% endblock %}
 
@@ -191,6 +243,7 @@
       el.innerHTML = '<p class="review-empty">Nada por aqui no momento.</p>';
       return;
     }
+    el.innerHTML = "";
     list.forEach((item) => el.appendChild(renderFn(item)));
   }
 
@@ -236,9 +289,108 @@
 
     const body = document.getElementById("students-body");
     body.innerHTML = dash.students
-      .map((s) => `<tr><td>${s.username}</td><td>${s.progress_overall}%</td><td>${s.pending_diagnostics}</td></tr>`)
+      .map((s) => `<tr><td>${s.username}</td><td>${s.progress_overall}%</td><td>${s.pending_diagnostics}</td>
+        <td><button class="link-btn" data-select-student="${s.id}">+ Nota</button></td></tr>`)
       .join("");
+
+    const select = document.getElementById("note-student");
+    select.innerHTML = dash.students.map((s) => `<option value="${s.id}">${s.username}</option>`).join("");
+
+    document.querySelectorAll("[data-select-student]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        select.value = btn.dataset.selectStudent;
+        document.getElementById("note-comment").focus();
+        document.querySelector(".note-form").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+
+    await carregarNotas();
   }
+
+  function renderNoteItem(n) {
+    const card = document.createElement("div");
+    card.className = "review-card";
+    card.innerHTML = `
+      <div class="review-head">
+        <div><strong>${n.student_username}</strong> — nota ${n.rating}/5</div>
+      </div>
+      <p>${n.comment || "<em>(sem comentário)</em>"}</p>
+      <p class="note-item-meta">${new Date(n.created_at).toLocaleString("pt-BR")}</p>
+    `;
+    return card;
+  }
+
+  async function carregarNotas() {
+    const resp = await ST.apiFetch("/api/teacher-feedback/");
+    if (!resp.ok) return;
+    const notas = (await resp.json()).results;
+    fillEmpty("notes-list", notas, renderNoteItem);
+  }
+
+  document.getElementById("note-submit").addEventListener("click", async () => {
+    const btn = document.getElementById("note-submit");
+    const msgEl = document.getElementById("note-msg");
+    const payload = {
+      student: parseInt(document.getElementById("note-student").value, 10),
+      rating: parseInt(document.getElementById("note-rating").value, 10),
+      comment: document.getElementById("note-comment").value,
+    };
+    btn.disabled = true;
+    try {
+      const resp = await ST.apiFetch("/api/teacher-feedback/", { method: "POST", body: JSON.stringify(payload) });
+      const data = await resp.json();
+      if (!resp.ok) {
+        const primeiroErro = Object.values(data)[0];
+        throw new Error(Array.isArray(primeiroErro) ? primeiroErro[0] : "Não foi possível salvar.");
+      }
+      document.getElementById("note-comment").value = "";
+      msgEl.textContent = "Anotação salva.";
+      msgEl.className = "action-msg show";
+      msgEl.style.color = "#0c6e58";
+      await carregarNotas();
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.className = "action-msg show error";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("btn-analyze-notes").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-analyze-notes");
+    const resultEl = document.getElementById("analysis-result");
+    const studentId = document.getElementById("note-student").value;
+    if (!studentId) return;
+
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "A IA está sintetizando as anotações...";
+    resultEl.style.display = "none";
+    try {
+      const resp = await ST.apiFetch(`/api/students/${studentId}/notes-analysis/`);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Não foi possível analisar.");
+
+      if (data.status === "insufficient_evidence") {
+        resultEl.innerHTML = `<p class="ai-item-muted">${data.message}</p>`;
+      } else {
+        const fonte = data.source === "ai" ? "Sintetizado por IA a partir das suas anotações" : "Resumo automático (sem IA configurada)";
+        resultEl.innerHTML = `
+          <p class="ai-summary">${data.summary}</p>
+          <ul class="ai-actions">${data.suggested_actions.map((a) => `<li><strong>${a.action}</strong><br>${a.reason}</li>`).join("")}</ul>
+          <p class="ai-disclaimer">${data.disclaimer}</p>
+          <span class="ai-source-tag">${fonte} · ${data.notes_analyzed} anotação(ões) · nota média ${data.average_rating}/5</span>
+        `;
+      }
+      resultEl.style.display = "block";
+    } catch (err) {
+      resultEl.innerHTML = `<p class="ai-item-error">${err.message}</p>`;
+      resultEl.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  });
 
   carregarTudo().catch((err) => {
     document.getElementById("loading").style.display = "none";

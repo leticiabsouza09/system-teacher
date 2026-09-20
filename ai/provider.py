@@ -50,7 +50,7 @@ class AnthropicProvider(AIProvider):
         try:
             resposta = self._client.messages.create(
                 model=self._model,
-                max_tokens=1024,
+                max_tokens=1536,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_prompt}],
             )

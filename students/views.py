@@ -8,6 +8,7 @@ from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from core.permissions import IsTeacher
 from users.models import User
 
 from .serializers import ProgressRecordSerializer, StudentSerializer, StudentSkillSerializer
@@ -37,3 +38,16 @@ class StudentViewSet(viewsets.ReadOnlyModelViewSet):
         student = self.get_object()
         registros = student.progress_records.select_related("skill").all()
         return Response(ProgressRecordSerializer(registros, many=True).data)
+
+    @action(detail=True, methods=["get"], url_path="notes-analysis",
+            permission_classes=[permissions.IsAuthenticated, IsTeacher])
+    def notes_analysis(self, request, pk=None):
+        """GET /api/students/{id}/notes-analysis/ — só professor. Analisa
+        as anotações que O PRÓPRIO professor logado escreveu sobre este
+        aluno (nunca as de outro professor)."""
+        from ai.notes_analyzer import build_default_service
+
+        student = self.get_object()
+        service = build_default_service()
+        resultado = service.analyze(teacher=request.user, student=student)
+        return Response(resultado)

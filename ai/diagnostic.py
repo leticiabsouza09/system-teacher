@@ -14,6 +14,8 @@ e sempre com fallback determinístico se não estiver configurada ou falhar.
 """
 from dataclasses import dataclass, field
 
+import logging
+
 from django.conf import settings
 
 from assessments.models import AssessmentQuestion
@@ -101,7 +103,8 @@ class DiagnosticService:
             )
             acao = resposta.get("recommended_action", "").strip()
             return acao if acao else acao_padrao
-        except (TimeoutError, ValueError, KeyError):
+        except (TimeoutError, ValueError, KeyError) as e:
+            logging.getLogger(__name__).warning("Enriquecimento de IA falhou, usando texto padrão: %s", e)
             return acao_padrao
 
     def diagnose_skill(self, student: User, skill: Skill) -> SkillDiagnosisResult:

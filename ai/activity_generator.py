@@ -9,6 +9,8 @@ imposto em código (a sequência e a dificuldade vêm de `priority_for_mastery`,
 não da IA). Sem AIProvider configurado, usa templates determinísticos —
 funcionais, só menos elaborados.
 """
+import logging
+
 from django.db import transaction
 
 from learning.models import Diagnostic, StudyActivity, StudyPlan
@@ -108,8 +110,8 @@ def build_activity_content(skill: Skill, activity_type: str, difficulty: str,
         for campo in ("description", "instructions", "explanation"):
             if resposta.get(campo):
                 conteudo[campo] = resposta[campo]
-    except (TimeoutError, ValueError, KeyError):
-        pass  # mantém o template padrão
+    except (TimeoutError, ValueError, KeyError) as e:
+        logging.getLogger(__name__).warning("Enriquecimento de IA falhou, usando template padrão: %s", e)
 
     return conteudo
 
