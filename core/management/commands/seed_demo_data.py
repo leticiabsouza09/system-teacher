@@ -16,6 +16,7 @@ from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 
 from assessments.models import Assessment, AssessmentQuestion
+from classrooms.models import Classroom
 from students.models import StudentProfile
 from subjects.models import Skill, Subject
 from teachers.models import TeacherProfile
@@ -77,6 +78,13 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"Usuários prontos: professor 'prof_ana', alunos 'joana' e 'pedro' (senha: {SENHA_DEMO})."))
+
+        turma, _ = Classroom.objects.get_or_create(name="8º Ano A - Demo")
+        turma.teachers.set([professor])
+        turma.students.set([joana, pedro])
+        self.stdout.write(self.style.SUCCESS(
+            "Turma '8º Ano A - Demo' criada, vinculando prof_ana a joana e pedro — "
+            "sem essa turma, a professora não veria nenhum dos dois nos dashboards."))
 
         # Recria as avaliações de demonstração do zero, pra sempre dar o
         # mesmo cenário previsível (mastery_level é calculado a partir de

@@ -120,6 +120,10 @@ class PermissoesCustomizadasTests(TestCase):
 
         materia = Subject.objects.create(name="Matemática")
         skill = Skill.objects.create(subject=materia, name="Frações", difficulty_level="basic")
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno1)
         self.diagnostico_aluno1 = Diagnostic.objects.create(
             student=self.aluno1, skill=skill, mastery_level=40,
             difficulty_level="basic", evidence=["teste"],

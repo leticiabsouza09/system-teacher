@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "learning",
     "dashboard",
     "core",
+    "classrooms",
 ]
 
 MIDDLEWARE = [

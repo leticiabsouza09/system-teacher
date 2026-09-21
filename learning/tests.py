@@ -22,6 +22,10 @@ class DiagnosticAPITests(APITestCase):
             username="prof", password="x", email="pr@t.com", role=User.Role.TEACHER)
         materia = Subject.objects.create(name="Matemática")
         skill = Skill.objects.create(subject=materia, name="Frações", difficulty_level="basic")
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno1)
         self.diagnostico = Diagnostic.objects.create(
             student=self.aluno1, skill=skill, mastery_level=40,
             difficulty_level="basic", evidence=["evidência de teste"])
@@ -84,6 +88,10 @@ class TeacherFeedbackAPITests(APITestCase):
             username="prof", password="x", email="pr@t.com", role=User.Role.TEACHER)
         materia = Subject.objects.create(name="Matemática")
         skill = Skill.objects.create(subject=materia, name="Frações", difficulty_level="basic")
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno1, self.aluno2)
         self.diagnostico = Diagnostic.objects.create(
             student=self.aluno1, skill=skill, mastery_level=40,
             difficulty_level="basic", evidence=["teste"])
@@ -139,6 +147,10 @@ class StudyPlanAPITests(APITestCase):
             username="joana", password="x", email="j@t.com", role=User.Role.STUDENT)
         self.professor = User.objects.create_user(
             username="prof", password="x", email="pr@t.com", role=User.Role.TEACHER)
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno)
         self.plano = StudyPlan.objects.create(
             student=self.aluno, start_date="2026-01-01", end_date="2026-01-08")
 

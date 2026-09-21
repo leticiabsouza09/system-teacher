@@ -35,6 +35,10 @@ class AssessmentAPITests(APITestCase):
         self.professor = User.objects.create_user(
             username="prof", password="x", email="pr@t.com", role=User.Role.TEACHER)
         self.materia = Subject.objects.create(name="Matemática")
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno1)
         Assessment.objects.create(
             student=self.aluno1, subject=self.materia, title="Prova de Joana",
             date="2026-01-01", score=70)

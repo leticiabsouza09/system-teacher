@@ -22,8 +22,12 @@ from .serializers import (
 
 
 def _filtrar_por_dono_ou_professor(queryset, user):
-    if user.is_teacher or user.role == "admin":
+    if user.role == "admin":
         return queryset
+    if user.is_teacher:
+        from classrooms.models import Classroom
+        turmas = Classroom.objects.filter(teachers=user)
+        return queryset.filter(student__classrooms_enrolled__in=turmas).distinct()
     return queryset.filter(student=user)
 
 
@@ -56,6 +60,10 @@ class DiagnosticViewSet(viewsets.ReadOnlyModelViewSet):
             except User.DoesNotExist:
                 return Response({"student": ["Aluno não encontrado."]},
                                  status=status.HTTP_404_NOT_FOUND)
+            from core.permissions import teacher_has_classroom_with
+            if not teacher_has_classroom_with(request.user, aluno_alvo):
+                return Response({"detail": "Você não tem vínculo com este aluno."},
+                                 status=status.HTTP_403_FORBIDDEN)
         else:
             return Response({"detail": "Apenas aluno ou professor podem solicitar um diagnóstico."},
                              status=status.HTTP_403_FORBIDDEN)
@@ -142,6 +150,10 @@ class StudyPlanViewSet(viewsets.ReadOnlyModelViewSet):
                 aluno_alvo = User.objects.get(pk=student_id, role=User.Role.STUDENT)
             except User.DoesNotExist:
                 return Response({"student": ["Aluno não encontrado."]}, status=status.HTTP_404_NOT_FOUND)
+            from core.permissions import teacher_has_classroom_with
+            if not teacher_has_classroom_with(request.user, aluno_alvo):
+                return Response({"detail": "Você não tem vínculo com este aluno."},
+                                 status=status.HTTP_403_FORBIDDEN)
         else:
             return Response({"detail": "Apenas aluno ou professor podem gerar um plano."},
                              status=status.HTTP_403_FORBIDDEN)
@@ -185,8 +197,12 @@ class StudyActivityViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = StudyActivity.objects.select_related("skill", "study_plan")
         user = self.request.user
-        if user.is_teacher or user.role == "admin":
+        if user.role == "admin":
             return qs
+        if user.is_teacher:
+            from classrooms.models import Classroom
+            turmas = Classroom.objects.filter(teachers=user)
+            return qs.filter(study_plan__student__classrooms_enrolled__in=turmas).distinct()
         return qs.filter(study_plan__student=user)
 
     @action(detail=True, methods=["post"])

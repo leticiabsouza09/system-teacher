@@ -1,7 +1,7 @@
 """
 Permissões customizadas do DRF — reutilizadas em todos os ViewSets a
 partir da Etapa 5. Centralizadas aqui (não em cada app) porque as mesmas
-3 regras se repetem em quase todo endpoint: são a espinha dorsal da
+regras se repetem em quase todo endpoint: são a espinha dorsal da
 Seção 16 (permissões) e da Seção 3 (o que cada perfil pode fazer).
 
 Regra de ouro seguida em toda permissão abaixo: NUNCA decidir com base em
@@ -55,37 +55,42 @@ class IsOwnerStudent(permissions.BasePermission):
         return student is not None and student_id_matches(student, request.user)
 
 
+def teacher_has_classroom_with(teacher: User, student: User) -> bool:
+    """A checagem central de vínculo real professor↔aluno — via Classroom.
+    Usada tanto nas permissões abaixo quanto nos querysets dos ViewSets
+    (students, learning, assessments, dashboard), pra nunca ter dois
+    lugares decidindo isso de formas diferentes. Antes deste helper
+    existir, TODO professor via TODO aluno — essa era a limitação
+    documentada desde a Etapa 4."""
+    from classrooms.models import Classroom
+    return Classroom.objects.filter(teachers=teacher, students=student).exists()
+
+
 class IsTeacherOfStudent(permissions.BasePermission):
-    """Um professor só acessa dados de um aluno se existir pelo menos um
-    TeacherFeedback, StudyPlan aprovado por ele, ou Diagnostic validado por
-    ele envolvendo aquele aluno — nesta primeira versão do MVP, simplificamos
-    para: QUALQUER professor autenticado pode ver QUALQUER aluno (não há
-    ainda o conceito de "turma"/vínculo formal professor-aluno nos models
-    da Etapa 3). Isolei essa regra aqui, comentada, para não se perder: é
-    o primeiro ponto a evoluir quando o model de Turma existir."""
+    """Um professor só acessa dados de um aluno que está numa Classroom
+    que ele leciona — vínculo real agora, não mais 'qualquer professor
+    vê qualquer aluno'."""
     message = "Você não tem vínculo com este aluno."
 
     def has_object_permission(self, request, view, obj):
         if not (request.user.is_authenticated and request.user.is_teacher):
             return False
-        # TODO(etapa-futura): restringir por vínculo real professor-aluno
-        # (ex.: turma em comum) assim que esse model existir.
-        return True
+        aluno = obj if isinstance(obj, User) else getattr(obj, "student", None)
+        return aluno is not None and teacher_has_classroom_with(request.user, aluno)
 
 
 class IsTeacherOrReadOnlyOwner(permissions.BasePermission):
-    """Usado em endpoints como Diagnostic e StudyPlan: o professor pode
-    fazer qualquer ação (inclusive aprovar/editar); o aluno dono só pode
-    LER (GET) — nunca aprovar o próprio diagnóstico ou editar o próprio
-    plano. Isso é o que impede, em código, o cenário 'aluno não consegue
-    aprovar diagnóstico' que a Seção 16 pede para testar."""
-    message = "Apenas o professor pode aprovar, editar ou modificar este recurso."
+    """Usado em endpoints como Diagnostic e StudyPlan: o professor só pode
+    aprovar/editar se tiver vínculo de Classroom com o aluno dono do
+    objeto; o aluno dono só pode LER (GET) — nunca aprovar o próprio
+    diagnóstico ou editar o próprio plano (Seção 16)."""
+    message = "Apenas um professor vinculado a este aluno pode aprovar, editar ou modificar este recurso."
 
     def has_object_permission(self, request, view, obj):
+        student = getattr(obj, "student", None)
         if request.user.is_teacher:
-            return True
+            return student is not None and teacher_has_classroom_with(request.user, student)
         if request.method in permissions.SAFE_METHODS:
-            student = getattr(obj, "student", None)
             return student is not None and student_id_matches(student, request.user)
         return False
 

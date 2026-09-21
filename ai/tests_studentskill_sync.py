@@ -35,6 +35,10 @@ class DiagnosticApprovalSyncsStudentSkillTests(APITestCase):
             username="joana", password="x", email="j@t.com", role=User.Role.STUDENT)
         self.professor = User.objects.create_user(
             username="prof", password="x", email="p@t.com", role=User.Role.TEACHER)
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno)
         materia = Subject.objects.create(name="Matemática")
         self.skill = Skill.objects.create(subject=materia, name="Frações", difficulty_level="basic")
         self.diagnostico = Diagnostic.objects.create(

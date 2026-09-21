@@ -122,6 +122,10 @@ class NotesAnalysisAPITests(APITestCase):
             username="prof", password="x", email="p@t.com", role=User.Role.TEACHER)
         self.aluno = User.objects.create_user(
             username="joana", password="x", email="j@t.com", role=User.Role.STUDENT)
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno)
         TeacherFeedback.objects.create(teacher=self.professor, student=self.aluno, rating=2, comment="A")
         TeacherFeedback.objects.create(teacher=self.professor, student=self.aluno, rating=2, comment="B")
 

@@ -106,6 +106,12 @@ class TeacherFeedbackSerializer(serializers.ModelSerializer):
     def validate_student(self, value):
         if value.role != User.Role.STUDENT:
             raise serializers.ValidationError("O destinatário do feedback precisa ser um aluno.")
+        request = self.context.get("request")
+        if request and request.user.is_teacher:
+            from core.permissions import teacher_has_classroom_with
+            if not teacher_has_classroom_with(request.user, value):
+                raise serializers.ValidationError(
+                    "Você só pode registrar anotações sobre alunos das suas turmas.")
         return value
 
     def validate(self, attrs):

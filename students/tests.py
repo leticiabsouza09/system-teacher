@@ -27,6 +27,10 @@ class StudentAPITests(APITestCase):
             username="prof", password="x", email="pr@t.com", role=User.Role.TEACHER)
         materia = Subject.objects.create(name="Matemática")
         self.skill = Skill.objects.create(subject=materia, name="Frações", difficulty_level="basic")
+        from classrooms.models import Classroom
+        turma = Classroom.objects.create(name="Turma Teste")
+        turma.teachers.add(self.professor)
+        turma.students.add(self.aluno1, self.aluno2)
         StudentSkill.objects.create(student=self.aluno1, skill=self.skill, mastery_level=40)
         ProgressRecord.objects.create(student=self.aluno1, skill=self.skill,
                                        mastery_before=20, mastery_after=40, source="assessment")

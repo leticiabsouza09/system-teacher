@@ -152,9 +152,10 @@ suas `AssessmentQuestion` como inline, e `StudyPlan` suas `StudyActivity`.
 
 ## Limitações conhecidas (deliberadas, para manter o MVP enxuto)
 
-- **Sem conceito de "turma"**: qualquer professor autenticado vê todos os
-  alunos (`core/permissions.py:IsTeacherOfStudent` tem um `TODO` explícito
-  sobre isso).
+- **Turma sem interface própria**: o model `Classroom` existe e já é
+  aplicado de verdade em todos os pontos de acesso (ver seção acima), mas
+  só é editável pelo Django Admin ou pelo `seed_demo_data` — ainda não
+  existe uma tela para o professor (ou admin) criar/gerenciar turmas.
 - **Correção automática de atividade** só funciona por comparação exata de
   string (`expected_answer`) — sem gabarito, a atividade fica sem nota até
   correção manual do professor (nunca inventa uma nota).
@@ -162,17 +163,32 @@ suas `AssessmentQuestion` como inline, e `StudyPlan` suas `StudyActivity`.
   o `Diagnostic` gerado pelo `AdaptationService` por um trecho de texto na
   evidência (`"dificuldade persistente"`) — funciona, mas um campo
   dedicado (`Diagnostic.source`) seria mais robusto numa próxima iteração.
-- **Sem frontend renderizado** — só API. Templates Django ou uma SPA
-  consumiriam os mesmos endpoints.
 - **AnthropicProvider requer variável de ambiente exclusiva**: se
   `ANTHROPIC_API_KEY` estiver definida no SO (não só no `.env`), o sistema
   tenta usá-la — isso pode "vazar" de ferramentas que rodam com sua própria
   chave configurada no ambiente (ex.: um agente de codificação). Sem o
   pacote `anthropic` instalado, isso derruba a chamada; com o pacote
   instalado, uma chave de terceiro ativa faria o app tentar usá-la de
-  verdade. Se isso for uma preocupação, rode os testes num ambiente sem
-  essa variável no sistema, ou torne a leitura de `ANTHROPIC_API_KEY`
-  explicitamente restrita ao arquivo `.env` (não ao ambiente do SO).
+  verdade. `manage.py test` já se protege disso sozinho (força a chave
+  vazia durante os testes, veja `config/settings.py`); rodar o servidor
+  normal continua exposto a esse risco.
+
+## Turma (`classrooms`)
+
+Vínculo real entre professor e aluno — sem isso, "professor só vê os
+próprios alunos" (Seção 16) era impossível de impor de verdade. Um
+professor só acessa/aprova/anota dados de um aluno que está numa
+`Classroom` que ele leciona; fora disso, o aluno nem aparece nas listagens
+(querysets já filtram antes de qualquer permissão de objeto rodar — em
+geral resulta em 404, não 403, o mesmo padrão já usado no isolamento
+aluno↔aluno). Administrador continua sem essa restrição.
+
+Afeta: `StudentViewSet`, `AssessmentViewSet`/`AssessmentQuestionViewSet`,
+`DiagnosticViewSet`/`StudyPlanViewSet`/`StudyActivityViewSet` (via
+`_filtrar_por_dono_ou_professor`), as actions `generate` de diagnóstico/
+plano (um professor não gera nada para aluno sem vínculo), o
+`TeacherDashboardView`, e `TeacherFeedbackSerializer` (só registra
+anotação sobre aluno da própria turma).
 
 ## Testes
 
@@ -234,6 +250,10 @@ de integração que só o uso real do sistema revela.
   isolamento entre professores (um professor nunca vê a análise baseada
   em anotações de outro), e o filtro de segurança descartando qualquer
   sugestão de IA com linguagem clínica/psicológica.
+- Turma (`classrooms`): isolamento real ponta a ponta — professor sem
+  vínculo não vê o aluno em nenhuma listagem, não aprova diagnóstico
+  (404), não gera diagnóstico/plano para ele (403), não vê no dashboard,
+  e não registra anotação sobre ele (400).
 
 ## Próximos passos sugeridos
 

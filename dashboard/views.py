@@ -56,13 +56,17 @@ class StudentDashboardView(APIView):
 
 
 class TeacherDashboardView(APIView):
-    """GET /api/dashboard/teacher/ — visão agregada de TODOS os alunos.
-    Igual ao StudentViewSet (Etapa 5), qualquer professor autenticado vê
-    todos os alunos nesta versão do MVP (sem conceito de turma ainda)."""
+    """GET /api/dashboard/teacher/ — visão agregada só dos alunos das
+    Classroom que o professor logado leciona (vínculo real, desde a
+    introdução do model Classroom — antes era "qualquer professor vê
+    qualquer aluno")."""
     permission_classes = [IsAuthenticated, IsTeacher]
 
     def get(self, request):
-        alunos = User.objects.filter(role=User.Role.STUDENT)
+        from classrooms.models import Classroom
+
+        turmas = Classroom.objects.filter(teachers=request.user)
+        alunos = User.objects.filter(role=User.Role.STUDENT, classrooms_enrolled__in=turmas).distinct()
         resumo_alunos = []
         for aluno in alunos:
             media = (StudentSkill.objects.filter(student=aluno)
@@ -73,8 +77,10 @@ class TeacherDashboardView(APIView):
                 "progress_overall": round(media, 1), "pending_diagnostics": pendentes,
             })
 
-        pending_diagnostics_count = Diagnostic.objects.filter(status=Diagnostic.Status.PENDING).count()
-        plans_awaiting_approval_count = StudyPlan.objects.filter(status=StudyPlan.Status.DRAFT).count()
+        pending_diagnostics_count = Diagnostic.objects.filter(
+            status=Diagnostic.Status.PENDING, student__in=alunos).count()
+        plans_awaiting_approval_count = StudyPlan.objects.filter(
+            status=StudyPlan.Status.DRAFT, student__in=alunos).count()
 
         # Alertas de dificuldade persistente: Diagnostic gerado pelo
         # AdaptationService (Etapa 8) carrega essa frase na evidência.
@@ -85,6 +91,7 @@ class TeacherDashboardView(APIView):
         alertas = Diagnostic.objects.filter(
             status=Diagnostic.Status.PENDING,
             evidence__icontains="dificuldade persistente",
+            student__in=alunos,
         ).select_related("student", "skill")
 
         alertas_serializados = [
