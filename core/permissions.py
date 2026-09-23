@@ -31,6 +31,16 @@ class IsTeacher(permissions.BasePermission):
         return bool(request.user and request.user.is_authenticated and request.user.is_teacher)
 
 
+class IsTeacherOrAdmin(permissions.BasePermission):
+    """Professor OU admin — usado onde ambos podem agir, mas aluno não
+    (ex.: criar uma Classroom nova)."""
+    message = "Esta ação é permitida apenas para professores ou administradores."
+
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(u and u.is_authenticated and (u.is_teacher or u.role == User.Role.ADMIN))
+
+
 class IsAdminRole(permissions.BasePermission):
     """Só usuários com role=admin passam (diferente de is_staff do Django,
     que também dá acesso ao /admin/ — um admin do sistema tem as duas coisas,

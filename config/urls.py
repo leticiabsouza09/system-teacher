@@ -38,6 +38,7 @@ urlpatterns = [
     path("api/", include("learning.urls")),
     path("api/", include("dashboard.urls")),
     path("api/pedagogico/", include("pedagogico.urls")),
+    path("api/", include("classrooms.urls")),
 
     # Páginas web
     path("", TemplateView.as_view(template_name="index.html"), name="home"),

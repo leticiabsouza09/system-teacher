@@ -249,10 +249,30 @@ seu passando o id certo de outra turma):
 dos scripts de automação anteriores — vincular `LancamentoNota` a `Skill`
 seria o próximo passo pra ter a granularidade fina de novo.
 
+## Gerenciamento de Turma (`GET/POST /api/classrooms/`)
+
+Antes só dava pra criar/editar `Classroom` pelo Django Admin. Agora
+qualquer professor pode criar a própria turma (é vinculado como
+responsável automaticamente) e gerenciar o roster — mas com 4 travas de
+segurança explícitas, cada uma testada:
+- Payload de `teachers` é **descartado** se quem pede não for admin, tanto
+  na criação quanto na edição — um professor nunca consegue se auto-
+  promover a dono de outra turma, nem trocar quem é responsável pela
+  própria.
+- Professor só lista/edita as **próprias** turmas — tentar editar a de
+  outro dá 404 (mesmo padrão do resto do projeto: o queryset já filtra
+  antes de qualquer permissão de objeto rodar).
+- Adicionar/remover aluno é por **username** (`POST .../add-student/`,
+  `.../remove-student/`), nunca por uma lista navegável de todos os
+  alunos do sistema — evita dar a qualquer professor acesso de navegação
+  pelo cadastro completo.
+- Excluir turma é exclusivo do admin.
+
 ### Frontend do grid (`frontend-grid/`, React + Vite)
 
-Tela real do professor pra frequência/notas/painel de risco — três abas,
-consumindo os endpoints acima. Fica em `/professor/grid/`.
+Tela real do professor pra frequência/notas/painel de risco/gerenciamento
+de turma — quatro abas, consumindo os endpoints acima. Fica em
+`/professor/grid/`.
 
 ```bash
 cd frontend-grid

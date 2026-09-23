@@ -44,6 +44,14 @@ export async function login(username, password) {
 export const getMinhasTurmas = () => apiFetch("/pedagogico/minhas-turmas/");
 export const getDisciplinas = () => apiFetch("/subjects/");
 
+export const getClassrooms = () => apiFetch("/classrooms/");
+export const criarClassroom = (name) =>
+  apiFetch("/classrooms/", { method: "POST", body: JSON.stringify({ name }) });
+export const adicionarAlunoNaTurma = (turmaId, username) =>
+  apiFetch(`/classrooms/${turmaId}/add-student/`, { method: "POST", body: JSON.stringify({ username }) });
+export const removerAlunoDaTurma = (turmaId, username) =>
+  apiFetch(`/classrooms/${turmaId}/remove-student/`, { method: "POST", body: JSON.stringify({ username }) });
+
 export const getGridNotas = (turmaId, bimestre) =>
   apiFetch(`/pedagogico/notas/grid/?turma=${turmaId}&bimestre=${bimestre}`);
 

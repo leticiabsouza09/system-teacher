@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Login from "./components/Login";
 import FrequenciaGrid from "./components/FrequenciaGrid";
 import NotasGrid from "./components/NotasGrid";
 import PainelRisco from "./components/PainelRisco";
+import MinhasTurmas from "./components/MinhasTurmas";
 import { clearToken, getDisciplinas, getMinhasTurmas, getToken } from "./api";
 
 const ABAS = [
   { chave: "frequencia", rotulo: "Frequência" },
   { chave: "notas", rotulo: "Notas" },
   { chave: "risco", rotulo: "Painel de Risco" },
+  { chave: "turmas", rotulo: "Minhas Turmas" },
 ];
 
 export default function App() {
@@ -23,28 +25,35 @@ export default function App() {
   const [bimestre, setBimestre] = useState(1);
   const [aba, setAba] = useState("frequencia");
 
+  const carregarTudo = useCallback(async () => {
+    const [turmasResp, disciplinasResp] = await Promise.all([getMinhasTurmas(), getDisciplinas()]);
+    setTurmas(turmasResp);
+    const listaDisciplinas = disciplinasResp.results ?? disciplinasResp;
+    setDisciplinas(listaDisciplinas);
+    // Só define a turma/disciplina padrão se ainda não houver uma selecionada
+    // (senão, recarregar depois de criar uma turma nova reverteria a seleção
+    // do professor de volta pra primeira da lista toda vez).
+    setTurmaId((atual) => atual ?? (turmasResp.length ? turmasResp[0].id : null));
+    setDisciplinaId((atual) => atual ?? (listaDisciplinas.length ? listaDisciplinas[0].id : null));
+    return turmasResp;
+  }, []);
+
   useEffect(() => {
     if (!logado) { setCarregandoInicial(false); return; }
     let cancelado = false;
-    Promise.all([getMinhasTurmas(), getDisciplinas()])
-      .then(([turmasResp, disciplinasResp]) => {
-        if (cancelado) return;
-        setTurmas(turmasResp);
-        setDisciplinas(disciplinasResp.results ?? disciplinasResp);
-        if (turmasResp.length) setTurmaId(turmasResp[0].id);
-        const listaDisciplinas = disciplinasResp.results ?? disciplinasResp;
-        if (listaDisciplinas.length) setDisciplinaId(listaDisciplinas[0].id);
-      })
+    carregarTudo()
       .catch((err) => !cancelado && setErroInicial(err.message))
       .finally(() => !cancelado && setCarregandoInicial(false));
     return () => { cancelado = true; };
-  }, [logado]);
+  }, [logado, carregarTudo]);
 
   function handleLogout() {
     clearToken();
     setLogado(false);
     setTurmas([]);
     setDisciplinas([]);
+    setTurmaId(null);
+    setDisciplinaId(null);
   }
 
   if (!logado) return <Login onLogin={() => setLogado(true)} />;
@@ -60,66 +69,69 @@ export default function App() {
         <button className="btn-sair" onClick={handleLogout}>Sair</button>
       </header>
 
-      {turmas.length === 0 ? (
-        <p className="dica" style={{ padding: 24 }}>
-          Você ainda não leciona nenhuma turma vinculada. Peça a um administrador
-          para te vincular a uma turma no Django Admin.
-        </p>
-      ) : (
-        <>
-          <div className="controles">
-            <label>
-              Turma
-              <select value={turmaId ?? ""} onChange={(e) => setTurmaId(Number(e.target.value))}>
-                {turmas.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </label>
-            <label>
-              Disciplina
-              <select value={disciplinaId ?? ""} onChange={(e) => setDisciplinaId(Number(e.target.value))}>
-                {disciplinas.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-            </label>
-            <label>
-              Bimestre
-              <select value={bimestre} onChange={(e) => setBimestre(Number(e.target.value))}>
-                {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}º bimestre</option>)}
-              </select>
-            </label>
-          </div>
+      <div className="controles">
+        <label>
+          Turma
+          <select
+            value={turmaId ?? ""}
+            onChange={(e) => setTurmaId(Number(e.target.value))}
+            disabled={turmas.length === 0}
+          >
+            {turmas.length === 0 && <option value="">Nenhuma turma ainda</option>}
+            {turmas.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </label>
+        <label>
+          Disciplina
+          <select value={disciplinaId ?? ""} onChange={(e) => setDisciplinaId(Number(e.target.value))}>
+            {disciplinas.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </label>
+        <label>
+          Bimestre
+          <select value={bimestre} onChange={(e) => setBimestre(Number(e.target.value))}>
+            {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}º bimestre</option>)}
+          </select>
+        </label>
+      </div>
 
-          <nav className="abas">
-            {ABAS.map((a) => (
-              <button
-                key={a.chave}
-                className={aba === a.chave ? "aba-ativa" : ""}
-                onClick={() => setAba(a.chave)}
-              >
-                {a.rotulo}
-              </button>
-            ))}
-          </nav>
+      <nav className="abas">
+        {ABAS.map((a) => (
+          <button
+            key={a.chave}
+            className={aba === a.chave ? "aba-ativa" : ""}
+            onClick={() => setAba(a.chave)}
+          >
+            {a.rotulo}
+          </button>
+        ))}
+      </nav>
 
-          {turmaAtual && (
-            <main>
-              {/* As 3 abas ficam sempre montadas, só escondidas com CSS —
-                  se desmontar ao trocar de aba, o React descarta o estado
-                  do componente (ex.: a marcação de falta que ainda não foi
-                  salva), fazendo o trabalho em andamento sumir sem aviso
-                  quando o professor só dá uma olhada em outra aba. */}
-              <div style={{ display: aba === "frequencia" ? "block" : "none" }}>
-                <FrequenciaGrid turma={turmaAtual} disciplinaId={disciplinaId} bimestre={bimestre} />
-              </div>
-              <div style={{ display: aba === "notas" ? "block" : "none" }}>
-                <NotasGrid turma={turmaAtual} disciplinaId={disciplinaId} bimestre={bimestre} />
-              </div>
-              <div style={{ display: aba === "risco" ? "block" : "none" }}>
-                <PainelRisco turma={turmaAtual} bimestre={bimestre} />
-              </div>
-            </main>
-          )}
-        </>
-      )}
+      <main>
+        {/* As abas ficam sempre montadas, só escondidas com CSS — se
+            desmontar ao trocar de aba, o React descarta o estado do
+            componente (ex.: a marcação de falta que ainda não foi salva),
+            fazendo o trabalho em andamento sumir sem aviso quando o
+            professor só dá uma olhada em outra aba. */}
+        <div style={{ display: aba === "frequencia" ? "block" : "none" }}>
+          {turmaAtual
+            ? <FrequenciaGrid turma={turmaAtual} disciplinaId={disciplinaId} bimestre={bimestre} />
+            : <p className="dica">Crie uma turma na aba "Minhas Turmas" pra começar.</p>}
+        </div>
+        <div style={{ display: aba === "notas" ? "block" : "none" }}>
+          {turmaAtual
+            ? <NotasGrid turma={turmaAtual} disciplinaId={disciplinaId} bimestre={bimestre} />
+            : <p className="dica">Crie uma turma na aba "Minhas Turmas" pra começar.</p>}
+        </div>
+        <div style={{ display: aba === "risco" ? "block" : "none" }}>
+          {turmaAtual
+            ? <PainelRisco turma={turmaAtual} bimestre={bimestre} />
+            : <p className="dica">Crie uma turma na aba "Minhas Turmas" pra começar.</p>}
+        </div>
+        <div style={{ display: aba === "turmas" ? "block" : "none" }}>
+          <MinhasTurmas onTurmasAtualizadas={carregarTudo} />
+        </div>
+      </main>
     </div>
   );
 }
