@@ -1,9 +1,26 @@
 # Personalized Learning — Plataforma de Aprendizagem Personalizada com IA
 
+**🔗 Demo ao vivo**: [system-teacher-6f7c.onrender.com](https://system-teacher-6f7c.onrender.com/)
+— login de teste: `prof_ana` / `DemoSenha123!` (professora) ou `joana` /
+`pedro` / mesma senha (alunos). O serviço gratuito "dorme" depois de 15 min
+sem acesso — a primeira visita pode levar uns 30-60s pra acordar.
+
 MVP de uma plataforma que identifica lacunas de aprendizagem de um aluno,
 gera um plano de estudo personalizado, adapta a dificuldade conforme o
 desempenho, e mantém o professor como autoridade final em cada decisão
 importante — a IA é apoio à decisão, nunca quem decide sozinha.
+
+## Capturas de tela
+
+| | |
+|---|---|
+| ![Dashboard do professor — diagnósticos pendentes com aprovar/rejeitar](docs/screenshots/dashboard_professor.png) | ![Análise de anotações com IA](docs/screenshots/analise_anotacoes_ia.png) |
+| Dashboard do professor — aprova/rejeita diagnóstico direto na tela | IA sintetiza as anotações do professor sobre um aluno e sugere próximos passos |
+| ![Grid de frequência em React](docs/screenshots/grid_frequencia.png) | ![Gerenciamento de turmas](docs/screenshots/grid_minhas_turmas.png) |
+| Grid de frequência (React) — lançamento por exceção | Professor cria e gerencia a própria turma |
+
+![Grid rodando no deploy real do Render](docs/screenshots/grid_live_render.png)
+*O grid em React rodando de verdade em produção (Render), não só localmente.*
 
 ## Stack
 
