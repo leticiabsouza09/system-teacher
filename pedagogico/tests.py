@@ -147,3 +147,20 @@ class APIEndpointsTests(APITestCase):
         resp = self.client.get(f"/api/pedagogico/painel-risco/?turma={self.turma.id}&bimestre=1")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data[0]["matricula"], "MAT0001")
+
+    def test_minhas_turmas_lista_so_as_turmas_do_professor_logado(self):
+        outra_turma = Classroom.objects.create(name="Outra turma")
+        self.client.force_authenticate(user=self.professor)
+        resp = self.client.get("/api/pedagogico/minhas-turmas/")
+        self.assertEqual(resp.status_code, 200)
+        nomes = [t["name"] for t in resp.data]
+        self.assertIn(self.turma.name, nomes)
+        self.assertNotIn(outra_turma.name, nomes)
+        turma_resp = next(t for t in resp.data if t["id"] == self.turma.id)
+        usernames = [a["username"] for a in turma_resp["students"]]
+        self.assertCountEqual(usernames, ["joana", "pedro"])
+
+    def test_minhas_turmas_bloqueada_para_aluno(self):
+        self.client.force_authenticate(user=self.a1)
+        resp = self.client.get("/api/pedagogico/minhas-turmas/")
+        self.assertEqual(resp.status_code, 403)

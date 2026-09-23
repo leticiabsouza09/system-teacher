@@ -5,6 +5,6 @@ __pycache__/
 staticfiles/
 venv/
 .venv/
-backup_pre_sync_2026-09-19/
 .postman/
 postman/
+frontend-grid/node_modules/

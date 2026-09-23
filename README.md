@@ -236,6 +236,7 @@ Endpoints (`/api/pedagogico/`), todos exigindo professor **com vínculo de
 Classroom com a turma pedida** (403 se não tiver — testado explicitamente,
 inclusive o caso de um professor tentar lançar nota de aluno que não é
 seu passando o id certo de outra turma):
+- `GET minhas-turmas/` — turmas do professor logado, com a lista de alunos
 - `POST frequencia/em-lote/` — lançamento por exceção (todos presentes,
   só quem está em `ausentes` vira falta)
 - `GET/POST notas/grid/` — matriz aluno×disciplina×nota; POST faz upsert
@@ -248,6 +249,24 @@ seu passando o id certo de outra turma):
 dos scripts de automação anteriores — vincular `LancamentoNota` a `Skill`
 seria o próximo passo pra ter a granularidade fina de novo.
 
+### Frontend do grid (`frontend-grid/`, React + Vite)
+
+Tela real do professor pra frequência/notas/painel de risco — três abas,
+consumindo os endpoints acima. Fica em `/professor/grid/`.
+
+```bash
+cd frontend-grid
+npm install
+npm run dev       # localhost:5173, com proxy pra localhost:8000 (Django)
+npm run build     # gera static/grid/ — é o que o Django serve em produção
+```
+
+**O build (`static/grid/`) é versionado no git**, ao contrário do resto de
+`staticfiles/`. Isso é deliberado: o ambiente Python nativo do Render (ver
+seção de Deploy) não tem Node.js, então gerar o build ali quebraria o
+`build.sh`. Rodar `npm run build` de novo e commitar o resultado sempre
+que mexer em `frontend-grid/src/` é manual, mas evita configurar Node no
+provedor só pra isso.
 ## Testes
 
 94 testes automatizados (`python manage.py test`), cobrindo:

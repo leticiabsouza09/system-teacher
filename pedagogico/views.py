@@ -34,6 +34,30 @@ def _professor_leciona_a_turma(user, turma: Classroom) -> bool:
     return turma.teachers.filter(pk=user.pk).exists()
 
 
+class MinhasTurmasView(APIView):
+    """GET /api/pedagogico/minhas-turmas/ — turmas do professor logado,
+    com a lista de alunos de cada uma. É o que faltava pra qualquer tela
+    (React ou não) sequer começar: sem isso, não tem como saber qual
+    turma/aluno mostrar no grid."""
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    def get(self, request):
+        turmas = Classroom.objects.filter(teachers=request.user).prefetch_related("students")
+        dados = [
+            {
+                "id": t.id,
+                "name": t.name,
+                "students": [
+                    {"id": a.id, "username": a.username,
+                     "matricula": getattr(getattr(a, "student_profile", None), "matricula", None)}
+                    for a in t.students.all()
+                ],
+            }
+            for t in turmas
+        ]
+        return Response(dados)
+
+
 class FrequenciaEmLoteView(APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
