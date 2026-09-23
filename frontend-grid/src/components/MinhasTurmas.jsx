@@ -98,7 +98,14 @@ export default function MinhasTurmas({ onTurmasAtualizadas }) {
               <input
                 type="text" placeholder="username do aluno"
                 value={usernamesPorTurma[turma.id] || ""}
-                onChange={(e) => setUsernamesPorTurma((prev) => ({ ...prev, [turma.id]: e.target.value }))}
+                onChange={(e) => {
+                  setUsernamesPorTurma((prev) => ({ ...prev, [turma.id]: e.target.value }));
+                  // Limpa o erro assim que a pessoa mexe no campo de novo —
+                  // senão a mensagem antiga fica presa na tela mesmo depois
+                  // de apagar o texto errado, parecendo que o campo vazio
+                  // ainda está "errado".
+                  setStatusPorTurma((prev) => ({ ...prev, [turma.id]: null }));
+                }}
               />
               <button onClick={() => handleAdicionar(turma.id)}>Adicionar aluno</button>
             </div>
