@@ -1,0 +1,30 @@
+databases:
+  - name: system-teacher-db
+    databaseName: system_teacher
+    user: system_teacher_user
+    plan: free
+
+services:
+  - type: web
+    name: system-teacher
+    runtime: python
+    plan: free
+    buildCommand: "bash build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: system-teacher-db
+          property: connectionString
+      - key: AI_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_API_KEY
+        value: ""
+      - key: PYTHON_VERSION
+        value: "3.12.7"

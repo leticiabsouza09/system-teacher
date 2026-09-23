@@ -46,10 +46,12 @@ INSTALLED_APPS = [
     "dashboard",
     "core",
     "classrooms",
+    "pedagogico",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # serve estáticos em produção, sem servidor à parte
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",  # precisa vir antes do CommonMiddleware
     "django.middleware.common.CommonMiddleware",
@@ -105,6 +107,33 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"  # usado só em produção (collectstatic)
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# --- Produção atrás de proxy (Render e afins) -----------------------------
+# Sem isso, o Django não reconhece que a requisição chegou por HTTPS quando
+# o proxy do provedor termina o TLS e repassa por HTTP internamente — o que
+# quebraria redirecionamentos e o cookie seguro de CSRF.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Necessário desde o Django 4 para aceitar POST (login, cadastro, aprovação)
+# vindo do próprio domínio em produção — sem isso, o Django rejeita como
+# CSRF mesmo sendo o mesmo site, só por estar atrás de HTTPS num domínio
+# diferente do ALLOWED_HOSTS "cru". O curinga cobre qualquer subdomínio do
+# Render sem precisar saber o nome final do serviço com antecedência (ex.:
+# "system-teacher-ab12.onrender.com" em vez do nome que você escolheu).
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["https://*.onrender.com"])
+
+# Só entram em vigor com DEBUG=False (produção) — em desenvolvimento local
+# (HTTP puro), cookie "secure" quebraria login/CSRF.
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 60 * 60 * 24 * 7 if not DEBUG else 0  # 1 semana
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

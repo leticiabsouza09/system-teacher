@@ -15,6 +15,12 @@ class StudentProfile(models.Model):
     learning_preferences = models.JSONField(
         default=dict, blank=True,
         help_text="Ex.: {'formato_preferido': 'exercicios_praticos', 'melhor_horario': 'manha'}")
+    matricula = models.CharField(
+        max_length=20, unique=True, null=True, blank=True,
+        help_text="Identificador de matrícula, opcional — usado pelo app `pedagogico` "
+                   "(boletim/frequência) como chave alternativa quando o export precisa "
+                   "evitar nome/username (LGPD). O User continua sendo a identidade real "
+                   "para login e permissões; isto é só um campo extra.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

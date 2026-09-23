@@ -58,6 +58,34 @@ docker compose exec web python manage.py migrate
 docker compose exec web python manage.py createsuperuser
 ```
 
+## Deploy (Render)
+
+O projeto tem um `render.yaml` (Blueprint) que provisiona o serviço web +
+um banco PostgreSQL gratuito num clique só — sem precisar configurar nada
+manualmente no painel do Render.
+
+1. Faça um fork ou garanta que o repositório está no seu GitHub.
+2. Em [dashboard.render.com/blueprints](https://dashboard.render.com/blueprints),
+   clique em **New Blueprint Instance** e conecte o repositório.
+3. O Render lê o `render.yaml`, cria o banco e o serviço web automaticamente
+   (gera uma `SECRET_KEY` segura sozinho — você não precisa colar nada).
+4. Espere o build (`build.sh`: instala dependências, `collectstatic`,
+   `migrate`, e `seed_demo_data` — o banco já sobe com os dados de
+   demonstração, prontos pra qualquer visitante testar).
+5. Pronto — acesse a URL que o Render gerou (algo como
+   `https://system-teacher-xxxx.onrender.com`).
+
+**Sem custo, sem cartão de crédito.** Duas limitações do tier gratuito
+vale saber: o serviço "dorme" depois de 15 min sem acesso (a próxima
+visita demora uns 30-60s pra acordar — normal, não é bug), e o banco
+Postgres gratuito expira 30 dias após criado (dá pra recriar de graça de
+novo, só não é permanente).
+
+Se quiser ativar a IA de verdade em produção, edite a variável de
+ambiente `ANTHROPIC_API_KEY` direto no painel do Render (Settings →
+Environment) — sem isso, o sistema continua funcionando normalmente com
+o fallback determinístico, como já validamos localmente.
+
 ## Arquitetura
 
 ```
@@ -189,6 +217,36 @@ Afeta: `StudentViewSet`, `AssessmentViewSet`/`AssessmentQuestionViewSet`,
 plano (um professor não gera nada para aluno sem vínculo), o
 `TeacherDashboardView`, e `TeacherFeedbackSerializer` (só registra
 anotação sobre aluno da própria turma).
+
+## Boletim do dia a dia (`pedagogico`)
+
+Módulo de produtividade diária do professor — lançamento de frequência
+por exceção, grid de notas, e painel de risco (frequência <75%, média
+<6.0, queda de rendimento ≥20%). Nasceu como um projeto separado
+(script/SaaS de automação de boletim), depois integrado aqui.
+
+**Não tem model próprio de aluno/turma/disciplina** — usa `users.User`
+(role=student), `classrooms.Classroom` e `subjects.Subject` que já
+existem, evitando duas identidades paralelas pro mesmo aluno. O único
+campo novo é `StudentProfile.matricula` (opcional, único) — pensado pra
+quando um export precisar de um identificador que não seja o username
+(LGPD), sem afetar login/permissão em nada.
+
+Endpoints (`/api/pedagogico/`), todos exigindo professor **com vínculo de
+Classroom com a turma pedida** (403 se não tiver — testado explicitamente,
+inclusive o caso de um professor tentar lançar nota de aluno que não é
+seu passando o id certo de outra turma):
+- `POST frequencia/em-lote/` — lançamento por exceção (todos presentes,
+  só quem está em `ausentes` vira falta)
+- `GET/POST notas/grid/` — matriz aluno×disciplina×nota; POST faz upsert
+  em lote, tudo dentro de uma transação atômica (se uma linha for
+  inválida, nada é salvo, nem as linhas válidas)
+- `GET painel-risco/` — só lista quem tem alerta ativo
+
+**Limitação conhecida**: `analisar_causa_raiz` funciona por `Subject`
+(disciplina), não por micro-habilidade BNCC como o `GRAFO_CONHECIMENTO`
+dos scripts de automação anteriores — vincular `LancamentoNota` a `Skill`
+seria o próximo passo pra ter a granularidade fina de novo.
 
 ## Testes
 
