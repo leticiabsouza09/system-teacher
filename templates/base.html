@@ -6,30 +6,30 @@
 <title>{% block title %}System Teacher{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #ffffff;
-    --surface: #f4f5fb;
-    --surface-2: #eceefa;
-    --line: #e3e5f2;
-    --ink: #14151f;
-    --ink-soft: #64687a;
-    --primary: #e8562f;
-    --primary-dark: #c94422;
-    --primary-tint: #fdeae3;
-    --mint: #12a683;
-    --mint-tint: #e1f5ef;
-    --amber: #f5a623;
-    --amber-tint: #fdefd9;
-    --navy: #171b2e;
-    --navy-soft: #2a2f47;
-    --radius-sm: 10px;
-    --radius: 16px;
-    --radius-lg: 22px;
-    --shadow: 0 10px 30px -14px rgba(23, 27, 46, 0.18);
-    --display: "Space Grotesk", "Manrope", sans-serif;
-    --sans: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+    --bg: #faf7f0;
+    --surface: #f0ece0;
+    --surface-2: #e4dfd2;
+    --line: #ddd6c4;
+    --ink: #232320;
+    --ink-soft: #5b564a;
+    --primary: #b3401f;
+    --primary-dark: #8c3018;
+    --primary-tint: #f5e2da;
+    --mint: #3e5c2e;
+    --mint-tint: #eaf0e5;
+    --amber: #9a6b0c;
+    --amber-tint: #f6ecd6;
+    --navy: #232320;
+    --navy-soft: #3a362e;
+    --radius-sm: 4px;
+    --radius: 8px;
+    --radius-lg: 10px;
+    --shadow: 0 10px 30px -14px rgba(35, 35, 32, 0.16);
+    --display: "Source Serif 4", Georgia, serif;
+    --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   * { box-sizing: border-box; }
@@ -70,21 +70,21 @@
     color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 8px;
   }
   .brand-mark {
-    width: 30px; height: 30px; border-radius: 9px; background: var(--primary);
+    width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--primary);
     display: inline-flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 0.95rem; font-weight: 700; flex-shrink: 0;
+    color: var(--bg); font-size: 0.95rem; font-weight: 700; flex-shrink: 0; font-family: var(--display);
   }
   .nav-actions { display: flex; gap: 10px; align-items: center; }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: 12px 24px; border-radius: 999px; border: 1.5px solid transparent;
-    font-weight: 700; font-size: 0.92rem; cursor: pointer; text-decoration: none;
+    padding: 12px 24px; border-radius: var(--radius-sm); border: 1.5px solid transparent;
+    font-weight: 600; font-size: 0.92rem; cursor: pointer; text-decoration: none;
     transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
     font-family: var(--sans);
   }
   .btn:active { transform: translateY(1px) scale(0.99); }
-  .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 8px 18px -8px rgba(232, 86, 47, 0.55); }
+  .btn-primary { background: var(--primary); color: var(--bg); box-shadow: none; }
   .btn-primary:hover { background: var(--primary-dark); }
   .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
   .btn-ghost:hover { border-color: var(--ink-soft); }

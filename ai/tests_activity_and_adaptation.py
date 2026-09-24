@@ -70,6 +70,56 @@ class ActivityGeneratorServiceTests(TestCase):
         for atividade in plano.activities.all():
             self.assertLessEqual(atividade.estimated_minutes, 10)  # nunca do tamanho "cheio" do template
 
+    def test_um_diagnostico_so_mantem_duracao_minima_de_7_dias(self):
+        """Caso comum (1 lacuna) não deve mudar de comportamento — o
+        prazo mínimo de 7 dias continua valendo mesmo quando a carga é
+        pequena."""
+        diagnostico = Diagnostic.objects.create(
+            student=self.aluno, skill=self.skill, mastery_level=20,
+            difficulty_level="basic", evidence=["teste"], status=Diagnostic.Status.APPROVED)
+        plano = ActivityGeneratorService().generate_plan_from_diagnostics(self.aluno, [diagnostico])
+        self.assertEqual((plano.end_date - plano.start_date).days, 7)
+
+    def test_multiplos_diagnosticos_simultaneos_estendem_o_prazo_sem_descartar_atividade(self):
+        """A falha real que corrigimos: 6 disciplinas de prioridade alta
+        ao mesmo tempo entulhavam um plano de 7 dias fixos com 36
+        atividades — bem acima do tempo diário do aluno. Agora o prazo se
+        estende (16 dias, pra 30 min/dia e 480 min de carga total), mas
+        NENHUMA atividade é descartada — a lacuna continua real."""
+        materia = self.skill.subject
+        outras_habilidades = [
+            Skill.objects.create(subject=materia, name=f"Habilidade {i}", difficulty_level="basic")
+            for i in range(5)
+        ]
+        diagnosticos = [Diagnostic.objects.create(
+            student=self.aluno, skill=self.skill, mastery_level=20,
+            difficulty_level="basic", evidence=["teste"], status=Diagnostic.Status.APPROVED)]
+        for hab in outras_habilidades:
+            diagnosticos.append(Diagnostic.objects.create(
+                student=self.aluno, skill=hab, mastery_level=20,
+                difficulty_level="basic", evidence=["teste"], status=Diagnostic.Status.APPROVED))
+
+        plano = ActivityGeneratorService().generate_plan_from_diagnostics(self.aluno, diagnosticos)
+
+        self.assertEqual(plano.activities.count(), 36)  # 6 habilidades × 6 atividades — nada descartado
+        self.assertEqual((plano.end_date - plano.start_date).days, 16)  # ceil(480 / 30)
+
+    def test_carga_extrema_nao_ultrapassa_30_dias(self):
+        """Trava de segurança: mesmo com carga absurda, o plano nunca
+        passa de 30 dias — um plano "de 3 meses" não seria útil."""
+        materia = self.skill.subject
+        muitas_habilidades = [
+            Skill.objects.create(subject=materia, name=f"Habilidade Extra {i}", difficulty_level="basic")
+            for i in range(20)
+        ]
+        diagnosticos = [Diagnostic.objects.create(
+            student=self.aluno, skill=hab, mastery_level=20,
+            difficulty_level="basic", evidence=["teste"], status=Diagnostic.Status.APPROVED)
+            for hab in muitas_habilidades]
+
+        plano = ActivityGeneratorService().generate_plan_from_diagnostics(self.aluno, diagnosticos)
+        self.assertEqual((plano.end_date - plano.start_date).days, 30)
+
 
 class AdaptationServiceTests(TestCase):
     def setUp(self):

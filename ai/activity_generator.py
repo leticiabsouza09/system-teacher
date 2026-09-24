@@ -123,45 +123,71 @@ class ActivityGeneratorService:
     def _build_content(self, skill: Skill, activity_type: str, difficulty: str) -> dict:
         return build_activity_content(skill, activity_type, difficulty, self.ai_provider)
 
+    DIAS_MINIMOS_PLANO = 7
+    DIAS_MAXIMOS_PLANO = 30
+
     @transaction.atomic
     def generate_plan_from_diagnostics(self, student: User, diagnostics) -> StudyPlan:
         """Gera um StudyPlan + StudyActivities a partir de diagnósticos já
         APROVADOS (Seção 1: só depois da validação humana). `diagnostics`
         é um iterável de Diagnostic — quem chama decide quais entram
         (normalmente: todos os aprovados/modificados ainda não usados
-        num plano)."""
+        num plano).
+
+        A duração do plano (`end_date`) é calculada a partir da carga
+        total de minutos ÷ tempo disponível por dia — não é mais fixa em
+        7 dias. Sem isso, várias disciplinas com prioridade alta ao mesmo
+        tempo entulhavam um plano de 1 semana com dezenas de atividades
+        (6 disciplinas × 6 atividades = 36, bem acima do que um aluno com
+        30 min/dia disponíveis consegue cumprir em 7 dias). Nenhuma
+        atividade é descartada — a lacuna continua real — só o prazo se
+        ajusta pra caber no ritmo do aluno.
+        """
+        import math
         from datetime import date, timedelta
 
         tempo_disponivel = getattr(
             getattr(student, "student_profile", None), "study_time_available", 30)
+        if not tempo_disponivel or tempo_disponivel <= 0:
+            tempo_disponivel = 30
 
-        plano = StudyPlan.objects.create(
-            student=student, created_by_ai=True, status=StudyPlan.Status.DRAFT,
-            start_date=date.today(), end_date=date.today() + timedelta(days=7),
-        )
-
-        ordem = 1
+        # Monta a lista de atividades ANTES de criar o StudyPlan, pra
+        # poder somar a carga total e só então decidir a duração.
+        atividades_planejadas = []
         for diagnostico in diagnostics:
             prioridade = priority_for_mastery(diagnostico.mastery_level)
             sequencia = ACTIVITY_SEQUENCE_BY_PRIORITY[prioridade]
-
             for activity_type, titulo_template, minutos_base in sequencia:
-                conteudo = self._build_content(diagnostico.skill, activity_type,
-                                                diagnostico.difficulty_level)
                 # Não deixa uma única atividade estourar sozinha o tempo
                 # diário disponível — reduz proporcionalmente se preciso.
                 minutos = min(minutos_base, max(tempo_disponivel, 10))
+                atividades_planejadas.append({
+                    "diagnostico": diagnostico, "activity_type": activity_type,
+                    "titulo_template": titulo_template, "minutos": minutos,
+                })
 
-                StudyActivity.objects.create(
-                    study_plan=plano, skill=diagnostico.skill,
-                    title=titulo_template.format(skill=diagnostico.skill.name),
-                    description=conteudo["description"], activity_type=activity_type,
-                    difficulty=diagnostico.difficulty_level, estimated_minutes=minutos,
-                    instructions=conteudo["instructions"],
-                    expected_answer=conteudo["expected_answer"],
-                    explanation=conteudo["explanation"], order=ordem,
-                )
-                ordem += 1
+        total_minutos = sum(item["minutos"] for item in atividades_planejadas)
+        dias_pela_carga = math.ceil(total_minutos / tempo_disponivel)
+        duracao_dias = max(self.DIAS_MINIMOS_PLANO, min(dias_pela_carga, self.DIAS_MAXIMOS_PLANO))
+
+        plano = StudyPlan.objects.create(
+            student=student, created_by_ai=True, status=StudyPlan.Status.DRAFT,
+            start_date=date.today(), end_date=date.today() + timedelta(days=duracao_dias),
+        )
+
+        for ordem, item in enumerate(atividades_planejadas, start=1):
+            diagnostico = item["diagnostico"]
+            conteudo = self._build_content(diagnostico.skill, item["activity_type"],
+                                            diagnostico.difficulty_level)
+            StudyActivity.objects.create(
+                study_plan=plano, skill=diagnostico.skill,
+                title=item["titulo_template"].format(skill=diagnostico.skill.name),
+                description=conteudo["description"], activity_type=item["activity_type"],
+                difficulty=diagnostico.difficulty_level, estimated_minutes=item["minutos"],
+                instructions=conteudo["instructions"],
+                expected_answer=conteudo["expected_answer"],
+                explanation=conteudo["explanation"], order=ordem,
+            )
 
         return plano
 

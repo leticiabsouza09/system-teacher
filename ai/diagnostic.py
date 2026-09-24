@@ -19,7 +19,7 @@ import logging
 from django.conf import settings
 
 from assessments.models import AssessmentQuestion
-from learning.models import Diagnostic
+from learning.models import Diagnostic, StudentSkill
 from subjects.models import Skill
 from users.models import User
 
@@ -47,6 +47,65 @@ def priority_for_mastery(mastery_level: int) -> str:
     if mastery_level < MASTERY_THRESHOLD_MEDIUM:
         return "medium"
     return "low"
+
+
+def find_root_causes(student: User, skill: Skill, _visitados: set | None = None) -> list[dict]:
+    """Sobe recursivamente a árvore de Skill.prerequisites (que pode
+    atravessar disciplinas — nada impede um pré-requisito de outra
+    Subject, ex.: Física dependendo de Matemática) até achar a lacuna
+    mais profunda que realmente explica a dificuldade do aluno.
+
+    Nunca inventa profundidade: uma habilidade só é considerada "causa
+    mais funda" se o PRÓPRIO StudentSkill do aluno mostrar mastery_level
+    abaixo de MASTERY_THRESHOLD_MEDIUM — pré-requisito sem dado nenhum
+    ainda (aluno nunca foi diagnosticado nele) NUNCA é tratado como causa,
+    só como "não sabemos". Pode retornar mais de uma causa raiz se houver
+    mais de uma lacuna independente ao mesmo tempo (ex.: Sistemas de
+    Equações fraco por causa de Frações E de Equações do 1º Grau, ambos
+    fracos ao mesmo tempo)."""
+    if _visitados is None:
+        _visitados = set()
+    if skill.id in _visitados:
+        return []  # protege contra ciclo no grafo — nunca deveria existir, mas nunca confia
+    _visitados.add(skill.id)
+
+    pre_requisitos_fracos = []
+    for pre in skill.prerequisites.all():
+        estado = StudentSkill.objects.filter(student=student, skill=pre).first()
+        if estado is not None and estado.mastery_level < MASTERY_THRESHOLD_MEDIUM:
+            pre_requisitos_fracos.append(pre)
+
+    if not pre_requisitos_fracos:
+        # Esta habilidade é uma folha da árvore de causas: não tem
+        # pré-requisito cadastrado, ou tem mas nenhum está fraco (já
+        # dominado, ou sem dado ainda) — ela mesma é a causa raiz.
+        estado_atual = StudentSkill.objects.filter(student=student, skill=skill).first()
+        return [{
+            "skill_id": skill.id,
+            "skill_name": skill.name,
+            "subject_name": skill.subject.name,
+            "mastery_level": estado_atual.mastery_level if estado_atual else None,
+        }]
+
+    causas = []
+    for pre in pre_requisitos_fracos:
+        causas.extend(find_root_causes(student, pre, _visitados))
+    return causas
+
+
+def analisar_causa_raiz(student: User, skill: Skill) -> dict:
+    """Empacota find_root_causes numa resposta pronta pra API/tela: diz
+    se a própria habilidade diagnosticada já é a causa raiz (sem
+    pré-requisito fraco por trás) ou se a lacuna de verdade está mais
+    fundo na árvore — e em qual(is) habilidade(is)."""
+    causas = find_root_causes(student, skill)
+    e_a_propria_causa = len(causas) == 1 and causas[0]["skill_id"] == skill.id
+    return {
+        "habilidade_diagnosticada": {"skill_id": skill.id, "skill_name": skill.name,
+                                      "subject_name": skill.subject.name},
+        "e_a_propria_causa_raiz": e_a_propria_causa,
+        "causas_raiz": causas,
+    }
 
 
 @dataclass

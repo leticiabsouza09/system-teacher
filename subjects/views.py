@@ -28,4 +28,4 @@ class SkillViewSet(viewsets.ModelViewSet):
     queryset = Skill.objects.select_related("subject").prefetch_related("prerequisites").all()
     serializer_class = SkillSerializer
     permission_classes = [IsTeacherOrReadOnly]
-    filterset_fields = ["subject"]
+    filterset_fields = ["subject", "stage", "grade"]

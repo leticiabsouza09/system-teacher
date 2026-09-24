@@ -97,6 +97,19 @@ class DiagnosticViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response(DiagnosticSerializer(diagnostico).data)
 
+    @action(detail=True, methods=["get"], url_path="causa-raiz")
+    def causa_raiz(self, request, pk=None):
+        """GET /api/diagnostics/{id}/causa-raiz/ — sobe a árvore de
+        pré-requisitos (Skill.prerequisites) até achar a lacuna mais
+        funda que realmente explica esse diagnóstico. get_object() já
+        aplica o mesmo isolamento dono/professor do resto do
+        DiagnosticViewSet — sem permission_classes extra aqui."""
+        from ai.diagnostic import analisar_causa_raiz
+
+        diagnostico = self.get_object()
+        resultado = analisar_causa_raiz(diagnostico.student, diagnostico.skill)
+        return Response(resultado)
+
     def _sincronizar_student_skill(self, diagnostico: Diagnostic) -> None:
         """Um diagnóstico aprovado (ou aprovado com edição) é a fonte de
         verdade mais recente sobre o domínio do aluno naquela habilidade —

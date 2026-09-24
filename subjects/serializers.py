@@ -11,7 +11,7 @@ class SkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
         fields = ["id", "subject", "subject_name", "name", "description",
-                  "difficulty_level", "prerequisites", "prerequisite_names"]
+                  "difficulty_level", "stage", "grade", "prerequisites", "prerequisite_names"]
         extra_kwargs = {"prerequisites": {"write_only": True}}
 
 
